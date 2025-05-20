@@ -285,7 +285,6 @@ export function ContentLayout({
     sections.push(createContentSection(14, false, true));
   }
   
-  // Additional sections with just books (infinite scroll style) without headings
   // Display all remaining books by creating sections for each chunk
   const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
   const booksPerRow = 7; // Books per row
