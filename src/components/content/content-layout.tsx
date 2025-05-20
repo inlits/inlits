@@ -281,8 +281,8 @@ export function ContentLayout({
   sections.push(createContentSection(0, true, true));
   
   // Show "More Books to Explore" heading only once
-  if (combinedBooks.length > 14) {
-    sections.push(createContentSection(14, false, true));
+  if (combinedBooks.length > 28) {
+    sections.push(createContentSection(28, false, true));
   }
   
   // Additional sections with just books (infinite scroll style) without headings
