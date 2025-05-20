@@ -281,10 +281,11 @@ export function ContentLayout({
   sections.push(createContentSection(0, true, true));
   
   // Show "More Books to Explore" heading only once
-  if (combinedBooks.length > 21) {
-    sections.push(createContentSection(21, false, true));
+  if (combinedBooks.length > 14) {
+    sections.push(createContentSection(14, false, true));
   }
   
+  // Additional sections with just books (infinite scroll style) without headings
   // Display all remaining books by creating sections for each chunk
   const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
   const booksPerRow = 7; // Books per row
