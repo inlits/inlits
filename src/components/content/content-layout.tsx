@@ -290,6 +290,7 @@ export function ContentLayout({
   const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
   const booksPerRow = 7; // Books per row
   
+  // Create additional sections for all remaining books
   for (let i = remainingBooksStartIndex; i < combinedBooks.length; i += booksPerRow) {
     sections.push(createContentSection(i, false, false));
   }
