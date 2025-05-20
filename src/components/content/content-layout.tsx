@@ -37,8 +37,6 @@ export function ContentLayout({
   // Combine featured and remaining content
   const combinedBooks = [...featuredBooks, ...remainingBooks];
 
-  console.log(`Total books: ${combinedBooks.length}`);
-
   // Create content sections that will repeat
   const createContentSection = (startIndex: number, isFirstSection: boolean, showHeading: boolean) => {
     const booksPerRow = {
@@ -57,9 +55,10 @@ export function ContentLayout({
       base: 1 // Mobile
     };
 
-    // Get books for this section
-    const sectionBooks = combinedBooks.slice(startIndex, startIndex + booksPerRow.xl);
-    
+    // Get books for two rows
+    const sectionBooks = combinedBooks.slice(startIndex, startIndex + booksPerRow.xl * 2);
+    const bookRows = chunk(sectionBooks, booksPerRow.xl);
+
     // Get featured articles and podcasts first
     const featuredArticles = articles
       .filter(item => item.featured)
@@ -83,7 +82,8 @@ export function ContentLayout({
       .slice(startIndex / 2, startIndex / 2 + articlesPerRow.xl);
 
     // References for scrolling
-    const booksRef = useRef<HTMLDivElement>(null);
+    const booksRow1Ref = useRef<HTMLDivElement>(null);
+    const booksRow2Ref = useRef<HTMLDivElement>(null);
     const articlesRef = useRef<HTMLDivElement>(null);
     const podcastsRef = useRef<HTMLDivElement>(null);
 
@@ -103,10 +103,17 @@ export function ContentLayout({
       });
     };
 
+    // For the "Popular Books" section, sort by views
+    let popularBooks = [];
+    if (isFirstSection && bookRows[1]) {
+      // Create a copy of the second row and sort by views
+      popularBooks = [...bookRows[1]].sort((a, b) => b.views - a.views);
+    }
+
     return (
       <div className="space-y-2">
-        {/* Books section */}
-        {sectionBooks.length > 0 && (
+        {/* First row of books */}
+        {bookRows[0]?.length > 0 && (
           <div className="space-y-2">
             {showHeading && (
               <div className="flex items-center justify-between">
@@ -115,13 +122,13 @@ export function ContentLayout({
                 </h2>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => scroll(booksRef, 'left')}
+                    onClick={() => scroll(booksRow1Ref, 'left')}
                     className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button 
-                    onClick={() => scroll(booksRef, 'right')}
+                    onClick={() => scroll(booksRow1Ref, 'right')}
                     className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -130,10 +137,47 @@ export function ContentLayout({
               </div>
             )}
             <div 
-              ref={booksRef}
+              ref={booksRow1Ref}
               className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
             >
-              {sectionBooks.map(item => (
+              {bookRows[0].map(item => (
+                <div key={item.id} className="flex-shrink-0 w-[180px]">
+                  <ContentCard 
+                    item={item} 
+                    activeShelf={activeShelf}
+                    onAddToShelf={onAddToShelf}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Second row of books - only show in first section */}
+        {isFirstSection && bookRows[1]?.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Popular Books</h2>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => scroll(booksRow2Ref, 'left')}
+                  className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => scroll(booksRow2Ref, 'right')}
+                  className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div 
+              ref={booksRow2Ref}
+              className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+            >
+              {popularBooks.map(item => (
                 <div key={item.id} className="flex-shrink-0 w-[180px]">
                   <ContentCard 
                     item={item} 
@@ -230,7 +274,7 @@ export function ContentLayout({
     );
   };
 
-  // Create sections array
+  // Create multiple sections
   const sections = [];
   
   // First section with all content types
@@ -241,6 +285,7 @@ export function ContentLayout({
     sections.push(createContentSection(14, false, true));
   }
   
+  // Additional sections with just books (infinite scroll style) without headings
   // Display all remaining books by creating sections for each chunk
   const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
   const booksPerRow = 7; // Books per row
