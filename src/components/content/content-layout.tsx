@@ -292,8 +292,8 @@ export function ContentLayout({
   
   // Create at least 5 more sections for all remaining books
   const minSections = 5;
-  const remainingBooks = combinedBooks.slice(remainingBooksStartIndex);
-  const numSections = Math.max(minSections, Math.ceil(remainingBooks.length / booksPerRow));
+  const remainingSectionBooks = combinedBooks.slice(remainingBooksStartIndex);
+  const numSections = Math.max(minSections, Math.ceil(remainingSectionBooks.length / booksPerRow));
   
   for (let i = 0; i < numSections; i++) {
     const startIndex = remainingBooksStartIndex + (i * booksPerRow);
