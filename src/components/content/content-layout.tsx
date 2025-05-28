@@ -290,16 +290,9 @@ export function ContentLayout({
   const remainingBooksStartIndex = 28; // After the first two sections (14 + 14)
   const booksPerRow = 7; // Books per row
   
-  // Create at least 5 more sections for all remaining books
-  const minSections = 5;
-  const remainingSectionBooks = combinedBooks.slice(remainingBooksStartIndex);
-  const numSections = Math.max(minSections, Math.ceil(remainingSectionBooks.length / booksPerRow));
-  
-  for (let i = 0; i < numSections; i++) {
-    const startIndex = remainingBooksStartIndex + (i * booksPerRow);
-    if (startIndex < combinedBooks.length) {
-      sections.push(createContentSection(startIndex, false, false));
-    }
+  // Create additional sections for all remaining books
+  for (let i = remainingBooksStartIndex; i < combinedBooks.length; i += booksPerRow) {
+    sections.push(createContentSection(i, false, false));
   }
 
   return <div className="space-y-6">{sections}</div>;
