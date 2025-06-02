@@ -165,7 +165,7 @@ export const ContentCard = memo(function ContentCard({ item, activeShelf, onAddT
         {/* Creator Info */}
         {item.creator && (
           <Link
-            to={`/creator/${item.creator.id}`}
+            to={`/creator/${item.creator.username || item.creator.id}`}
             className="flex items-center gap-2 hover:text-primary transition-colors"
             onClick={(e) => e.stopPropagation()}
           >

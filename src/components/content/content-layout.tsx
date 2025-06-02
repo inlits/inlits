@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './content-card';
 import type { ContentItem } from '@/lib/types';
@@ -36,6 +36,38 @@ export function ContentLayout({
 
   // Combine featured and remaining content
   const combinedBooks = [...featuredBooks, ...remainingBooks];
+  
+  // State for infinite scroll
+  const [visibleSections, setVisibleSections] = useState(3); // Start with 3 sections
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(entries => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        // Load more sections when the trigger element is visible
+        setVisibleSections(prev => prev + 1);
+      }
+    }, {
+      rootMargin: '200px', // Load more before user reaches the end
+    });
+
+    if (loadMoreTriggerRef.current) {
+      observerRef.current.observe(loadMoreTriggerRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [visibleSections]);
 
   // Create content sections that will repeat
   const createContentSection = (startIndex: number, isFirstSection: boolean, showHeading: boolean) => {
@@ -290,10 +322,34 @@ export function ContentLayout({
   const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
   const booksPerRow = 7; // Books per row
   
-  // Create additional sections for all remaining books
-  for (let i = remainingBooksStartIndex; i < combinedBooks.length; i += booksPerRow) {
-    sections.push(createContentSection(i, false, false));
+  // Create additional sections for all remaining books, limited by visibleSections
+  const maxSections = Math.ceil((combinedBooks.length - remainingBooksStartIndex) / booksPerRow);
+  const sectionsToShow = Math.min(maxSections, visibleSections);
+  
+  for (let i = 0; i < sectionsToShow; i++) {
+    const startIndex = remainingBooksStartIndex + (i * booksPerRow);
+    if (startIndex < combinedBooks.length) {
+      sections.push(createContentSection(startIndex, false, false));
+    }
   }
 
-  return <div className="space-y-6">{sections}</div>;
+  return (
+    <div className="space-y-6">
+      {sections}
+      
+      {/* Infinite scroll trigger */}
+      {remainingBooksStartIndex + (visibleSections * booksPerRow) < combinedBooks.length && (
+        <div 
+          ref={loadMoreTriggerRef} 
+          className="h-20 flex items-center justify-center"
+        >
+          <div className="animate-pulse flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
