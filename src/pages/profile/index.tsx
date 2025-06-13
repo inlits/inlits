@@ -7,7 +7,6 @@ import { ProfileContributions } from '@/components/profile/profile-contributions
 import { ProfileAchievements } from '@/components/profile/profile-achievements';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
 
 export function ProfilePage() {
   const { user, profile } = useAuth();
@@ -16,7 +15,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     const loadUserData = async () => {
-      if (!user || !profile) return;
+      if (!user) return;
       
       try {
         setLoading(true);
@@ -24,7 +23,7 @@ export function ProfilePage() {
         // Get user stats from database
         const { data, error } = await supabase.rpc(
           'get_user_profile',
-          { username: profile.username }
+          { username: profile?.username }
         );
         
         if (error) throw error;
@@ -45,11 +44,6 @@ export function ProfilePage() {
     }
   }, [user, profile]);
 
-  // If user is logged in, redirect to their profile page with username in URL
-  if (user && profile && !loading) {
-    return <Navigate to={`/@${profile.username}`} replace />;
-  }
-
   if (!user || !profile) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -66,5 +60,23 @@ export function ProfilePage() {
     );
   }
 
-  return null; // This should never render as we redirect above
+  return (
+    <div className="space-y-8">
+      <ProfileHeader profile={userStats?.profile} isOwnProfile={true} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-8">
+          <IntellectualIdentity profile={userStats?.profile} />
+          <ProfileContributions profile={userStats?.profile} />
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-8">
+          <ProfileCircles profile={userStats?.profile} />
+          <ProfileAchievements profile={userStats?.profile} />
+        </div>
+      </div>
+    </div>
+  );
 }

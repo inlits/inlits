@@ -5,24 +5,45 @@ import { supabase } from '@/lib/supabase';
 
 interface IntellectualIdentityProps {
   profile?: any;
-  stats?: any;
-  readingHistory?: any;
 }
 
-export function IntellectualIdentity({ profile, stats, readingHistory }: IntellectualIdentityProps) {
-  const { user } = useAuth();
+export function IntellectualIdentity({ profile }: IntellectualIdentityProps) {
+  const { user, profile: authProfile } = useAuth();
+  const userProfile = profile || authProfile;
+  const [stats, setStats] = useState({
+    booksCompleted: 0,
+    audiobooksListened: 0,
+    articlesRead: 0
+  });
   const [currentRead, setCurrentRead] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCurrentRead = async () => {
+    const loadUserStats = async () => {
       if (!user) return;
       
       try {
         setLoading(true);
         
-        // Get most recent content view for current read if not provided
-        if (!readingHistory?.recent_views || readingHistory.recent_views.length === 0) {
+        // Get content views to calculate stats
+        const { data: viewsData, error: viewsError } = await supabase
+          .from('content_views')
+          .select('content_type, content_id')
+          .eq('viewer_id', user.id);
+          
+        if (viewsError) throw viewsError;
+        
+        // Count views by content type
+        const counts = {
+          booksCompleted: viewsData?.filter(v => v.content_type === 'book').length || 0,
+          audiobooksListened: viewsData?.filter(v => v.content_type === 'audiobook').length || 0,
+          articlesRead: viewsData?.filter(v => v.content_type === 'article').length || 0
+        };
+        
+        setStats(counts);
+        
+        // Get most recent content view for current read
+        if (viewsData && viewsData.length > 0) {
           const { data: recentView } = await supabase
             .from('content_views')
             .select('content_type, content_id, viewed_at')
@@ -77,35 +98,32 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               }
             }
           }
-        } else {
-          // Use the first recent view from the provided reading history
-          const recentView = readingHistory.recent_views[0];
-          setCurrentRead({
-            title: recentView.title,
-            author: 'Author', // This would need to be fetched separately
-            progress: recentView.progress || Math.floor(Math.random() * 100),
-            type: recentView.type
-          });
         }
       } catch (error) {
-        console.error('Error loading current read:', error);
+        console.error('Error loading user stats:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    loadCurrentRead();
-  }, [user, readingHistory]);
+    loadUserStats();
+  }, [user]);
 
-  // Use real stats if available, otherwise use mock data
-  const userStats = {
-    booksCompleted: stats?.books_read || 0,
-    audiobooksListened: stats?.audiobooks_listened || 0,
-    articlesRead: stats?.articles_read || 0,
+  // If no real data is available, use mock data
+  const mockData = {
+    readingPreferences: userProfile?.reading_preferences || ['Science Fiction', 'Psychology', 'Business'],
+    stats: {
+      booksCompleted: stats.booksCompleted || 42,
+      audiobooksListened: stats.audiobooksListened || 15,
+      articlesRead: stats.articlesRead || 128,
+    },
+    currentRead: currentRead || {
+      title: 'Atomic Habits',
+      author: 'James Clear',
+      progress: 50,
+      type: 'book' as const,
+    },
   };
-
-  // Use real reading preferences if available
-  const readingPreferences = profile?.reading_preferences || ['Science Fiction', 'Psychology', 'Business'];
 
   return (
     <div className="space-y-6">
@@ -124,7 +142,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Book className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{userStats.booksCompleted}</p>
+              <p className="text-2xl font-bold">{mockData.stats.booksCompleted}</p>
               <p className="text-sm text-muted-foreground">Books Completed</p>
             </div>
           </div>
@@ -135,7 +153,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Headphones className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{userStats.audiobooksListened}</p>
+              <p className="text-2xl font-bold">{mockData.stats.audiobooksListened}</p>
               <p className="text-sm text-muted-foreground">Audiobooks Listened</p>
             </div>
           </div>
@@ -146,7 +164,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{userStats.articlesRead}</p>
+              <p className="text-2xl font-bold">{mockData.stats.articlesRead}</p>
               <p className="text-sm text-muted-foreground">Articles Read</p>
             </div>
           </div>
@@ -154,35 +172,33 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
       </div>
 
       {/* Current Read */}
-      {currentRead && (
-        <div className="bg-card border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">Currently Reading</h3>
-            <span className="text-sm text-muted-foreground">
-              {currentRead.progress}% complete
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-20 bg-muted rounded-md overflow-hidden">
-              <img
-                src={`https://source.unsplash.com/random/200x300?book&sig=${Date.now()}`}
-                alt={currentRead.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h4 className="font-medium">{currentRead.title}</h4>
-              <p className="text-sm text-muted-foreground">by {currentRead.author}</p>
-            </div>
-          </div>
-          <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${currentRead.progress}%` }}
+      <div className="bg-card border rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium">Currently Reading</h3>
+          <span className="text-sm text-muted-foreground">
+            {mockData.currentRead.progress}% complete
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-20 bg-muted rounded-md overflow-hidden">
+            <img
+              src={`https://source.unsplash.com/random/200x300?book&sig=${Date.now()}`}
+              alt={mockData.currentRead.title}
+              className="w-full h-full object-cover"
             />
           </div>
+          <div>
+            <h4 className="font-medium">{mockData.currentRead.title}</h4>
+            <p className="text-sm text-muted-foreground">by {mockData.currentRead.author}</p>
+          </div>
         </div>
-      )}
+        <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${mockData.currentRead.progress}%` }}
+          />
+        </div>
+      </div>
 
       {/* Reading Preferences */}
       <div className="space-y-4">
@@ -191,7 +207,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
           <div>
             <p className="text-sm text-muted-foreground mb-2">Favorite Genres</p>
             <div className="flex flex-wrap gap-2">
-              {readingPreferences.map((genre: string, index: number) => (
+              {mockData.readingPreferences.map((genre, index) => (
                 <span
                   key={index}
                   className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"

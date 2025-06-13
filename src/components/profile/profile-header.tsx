@@ -60,20 +60,17 @@ export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderPro
               </div>
 
               <div className="flex items-center gap-3">
-                {isOwnProfile ? (
-                  <Link
-                    to="/settings"
-                    className="inline-flex items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Link>
-                ) : (
-                  <button className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Message
-                  </button>
-                )}
+                <Link
+                  to="/settings"
+                  className="inline-flex items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Link>
+                <button className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Message
+                </button>
               </div>
             </div>
 
