@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './content-card';
 import type { ContentItem } from '@/lib/types';
@@ -319,7 +319,7 @@ export function ContentLayout({
   
   // Additional sections with just books (infinite scroll style) without headings
   // Display all remaining books by creating sections for each chunk
-  const remainingBooksStartIndex = 21; // After the first two sections (14 + 7)
+  const remainingBooksStartIndex = 28; // After the first two sections (14 + 14)
   const booksPerRow = 7; // Books per row
   
   // Create additional sections for all remaining books, limited by visibleSections
