@@ -6,7 +6,7 @@ import { ProfileCircles } from '@/components/profile/profile-circles';
 import { ProfileContributions } from '@/components/profile/profile-contributions';
 import { ProfileAchievements } from '@/components/profile/profile-achievements';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export function ProfilePage() {
   const { user, profile } = useAuth();
@@ -24,10 +24,10 @@ export function ProfilePage() {
         setLoading(true);
         setError(null);
         
-        // Get user stats from database
+        // Get user profile data from database
         const { data, error: fetchError } = await supabase.rpc(
           'get_user_profile',
-          { username: profile.username }
+          { username_param: profile.username }
         );
         
         if (fetchError) throw fetchError;
@@ -65,6 +65,22 @@ export function ProfilePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Error loading profile</h2>
+        <p className="text-muted-foreground">{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

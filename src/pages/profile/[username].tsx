@@ -55,7 +55,7 @@ export function UserProfilePage() {
         // Get user stats and reading history
         const { data: userProfileData, error: userProfileError } = await supabase.rpc(
           'get_user_profile',
-          { username: cleanUsername }
+          { username_param: cleanUsername }
         );
 
         if (userProfileError) {

@@ -22,7 +22,9 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
     total_content_viewed: 128,
   };
 
-  const currentRead = readingHistory?.recent_views?.[0] || {
+  // Get the first item from reading history if available
+  const recentViews = readingHistory?.recent_views || [];
+  const currentRead = recentViews.length > 0 ? recentViews[0] : {
     title: 'Atomic Habits',
     author: 'James Clear',
     progress: 50,
@@ -30,6 +32,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
   };
 
   const readingPreferences = profile?.reading_preferences || ['Science Fiction', 'Psychology', 'Business'];
+  const favoriteCategories = stats?.favorite_categories || [];
 
   return (
     <div className="space-y-6">
@@ -136,11 +139,11 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
             </div>
           </div>
           
-          {stats?.favorite_categories && stats.favorite_categories.length > 0 && (
+          {favoriteCategories && favoriteCategories.length > 0 && (
             <div>
               <p className="text-sm text-muted-foreground mb-2">Most Read Categories</p>
               <div className="flex flex-wrap gap-2">
-                {stats.favorite_categories.map((category: string, index: number) => (
+                {favoriteCategories.map((category: string, index: number) => (
                   <span
                     key={index}
                     className="px-3 py-1 rounded-full bg-muted text-sm"
