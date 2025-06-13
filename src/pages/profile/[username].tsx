@@ -7,6 +7,7 @@ import { IntellectualIdentity } from '@/components/profile/intellectual-identity
 import { ProfileCircles } from '@/components/profile/profile-circles';
 import { ProfileContributions } from '@/components/profile/profile-contributions';
 import { ProfileAchievements } from '@/components/profile/profile-achievements';
+import { Loader2, AlertCircle } from 'lucide-react';
 import type { Profile } from '@/lib/types';
 
 export function UserProfilePage() {
@@ -15,62 +16,71 @@ export function UserProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileData, setProfileData] = useState<any | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+
+  // Remove @ from username if present
+  const cleanUsername = username?.startsWith('@') ? username.substring(1) : username;
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const { data, error } = await supabase
+        setLoading(true);
+        setError(null);
+
+        // First get the profile to check if it exists
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('username', username)
+          .eq('username', cleanUsername)
           .single();
 
-        if (error) throw error;
-        if (!data) throw new Error('Profile not found');
+        if (profileError) throw profileError;
+        if (!profileData) throw new Error('Profile not found');
 
-        // If viewing own profile, redirect to /profile
-        if (user && data.id === user.id) {
-          navigate('/profile');
-          return;
+        // Check if this is the user's own profile
+        if (user && profileData.id === user.id) {
+          setIsOwnProfile(true);
         }
 
-        setProfile(data);
+        // Get user stats
+        const { data: userStats, error: statsError } = await supabase.rpc(
+          'get_user_profile',
+          { username: cleanUsername }
+        );
+
+        if (statsError) throw statsError;
+        if (!userStats || userStats.length === 0) throw new Error('Failed to load user data');
+
+        setProfileData(userStats[0]);
       } catch (err) {
+        console.error('Error loading profile:', err);
         setError(err instanceof Error ? err.message : 'Failed to load profile');
       } finally {
         setLoading(false);
       }
     };
 
-    loadProfile();
-  }, [username, user, navigate]);
+    if (cleanUsername) {
+      loadProfile();
+    }
+  }, [cleanUsername, user]);
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-8">
-        <div className="h-48 bg-muted rounded-xl" />
-        <div className="h-32 bg-muted rounded-lg" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="h-64 bg-muted rounded-lg" />
-            <div className="h-96 bg-muted rounded-lg" />
-          </div>
-          <div className="space-y-8">
-            <div className="h-64 bg-muted rounded-lg" />
-            <div className="h-64 bg-muted rounded-lg" />
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (error || !profile) {
+  if (error || !profileData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
         <h1 className="text-2xl font-semibold">Profile not found</h1>
         <p className="text-muted-foreground">
-          The profile you're looking for doesn't exist or has been removed.
+          {error || "The profile you're looking for doesn't exist or has been removed."}
         </p>
         <button
           onClick={() => navigate(-1)}
@@ -84,19 +94,19 @@ export function UserProfilePage() {
 
   return (
     <div className="space-y-8">
-      <ProfileHeader profile={profile} isOwnProfile={false} />
+      <ProfileHeader profile={profileData.profile} isOwnProfile={isOwnProfile} />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
-          <IntellectualIdentity profile={profile} />
-          <ProfileContributions profile={profile} />
+          <IntellectualIdentity profile={profileData.profile} stats={profileData.stats} readingHistory={profileData.reading_history} />
+          <ProfileContributions profile={profileData.profile} />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-8">
-          <ProfileCircles profile={profile} />
-          <ProfileAchievements profile={profile} />
+          <ProfileCircles profile={profileData.profile} />
+          <ProfileAchievements profile={profileData.profile} />
         </div>
       </div>
     </div>

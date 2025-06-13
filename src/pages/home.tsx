@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ContentLayout } from '@/components/content/content-layout';
@@ -27,6 +27,9 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     articles: [],
     podcasts: []
   });
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const loadingMoreRef = useRef(false);
 
   // Get shelf parameter from URL
   const shelfParam = searchParams.get('shelf');
@@ -71,226 +74,278 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     }
   }, [shelfParam]);
 
-  useEffect(() => {
-    const loadContent = async () => {
-      try {
+  const loadContent = async (pageNum = 1, append = false) => {
+    try {
+      if (loadingMoreRef.current) return;
+      
+      if (pageNum === 1) {
         setLoading(true);
-        setError(null);
+      }
+      
+      loadingMoreRef.current = true;
+      setError(null);
 
-        // Load content in parallel with category filter
-        const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
-          // Load audiobooks
-          supabase
-            .from('audiobooks')
-            .select(`
+      // Load content in parallel with category filter
+      const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
+        // Load audiobooks
+        supabase
+          .from('audiobooks')
+          .select(`
+            id,
+            title,
+            description,
+            cover_url,
+            created_at,
+            featured,
+            category,
+            author:profiles!audiobooks_author_id_fkey (
               id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!audiobooks_author_id_fkey (
-                id,
-                name,
-                avatar_url
-              )
-            `)
-            .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(28),
+              name,
+              avatar_url
+            )
+          `)
+          .eq('status', 'published')
+          .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+          .order('featured', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range((pageNum - 1) * 28, pageNum * 28 - 1),
 
-          // Load books
-          supabase
-            .from('books')
-            .select(`
+        // Load books
+        supabase
+          .from('books')
+          .select(`
+            id,
+            title,
+            description,
+            cover_url,
+            created_at,
+            featured,
+            category,
+            author:profiles!books_author_id_fkey (
               id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!books_author_id_fkey (
-                id,
-                name,
-                avatar_url
-              )
-            `)
-            .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(28),
+              name,
+              avatar_url
+            )
+          `)
+          .eq('status', 'published')
+          .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+          .order('featured', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range((pageNum - 1) * 28, pageNum * 28 - 1),
 
-          // Load articles
-          supabase
-            .from('articles')
-            .select(`
+        // Load articles
+        supabase
+          .from('articles')
+          .select(`
+            id,
+            title,
+            excerpt,
+            content,
+            cover_url,
+            created_at,
+            featured,
+            category,
+            author:profiles!articles_author_id_fkey (
               id,
-              title,
-              excerpt,
-              content,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!articles_author_id_fkey (
-                id,
-                name,
-                avatar_url
-              )
-            `)
-            .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(20),
+              name,
+              avatar_url
+            )
+          `)
+          .eq('status', 'published')
+          .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+          .order('featured', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range((pageNum - 1) * 20, pageNum * 20 - 1),
 
-          // Load podcasts
-          supabase
-            .from('podcast_episodes')
-            .select(`
+        // Load podcasts
+        supabase
+          .from('podcast_episodes')
+          .select(`
+            id,
+            title,
+            description,
+            cover_url,
+            duration,
+            created_at,
+            featured,
+            category,
+            author:profiles!podcast_episodes_author_id_fkey (
               id,
-              title,
-              description,
-              cover_url,
-              duration,
-              created_at,
-              featured,
-              category,
-              author:profiles!podcast_episodes_author_id_fkey (
-                id,
-                name,
-                avatar_url
-              )
-            `)
-            .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(20)
-        ]);
+              name,
+              avatar_url
+            )
+          `)
+          .eq('status', 'published')
+          .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+          .order('featured', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range((pageNum - 1) * 20, pageNum * 20 - 1)
+      ]);
 
-        // Calculate read time for articles based on content length
-        const calculateReadTime = (content: string): string => {
-          const wordsPerMinute = 200;
-          const words = content.trim().split(/\s+/).length;
-          const minutes = Math.ceil(words / wordsPerMinute);
-          return `${minutes} min read`;
-        };
+      // Calculate read time for articles based on content length
+      const calculateReadTime = (content: string): string => {
+        const wordsPerMinute = 200;
+        const words = content.trim().split(/\s+/).length;
+        const minutes = Math.ceil(words / wordsPerMinute);
+        return `${minutes} min read`;
+      };
 
-        // If user is logged in, get their bookmarks to mark items as bookmarked
-        let userBookmarks: { content_id: string; content_type: string }[] = [];
-        if (user) {
-          const { data: bookmarksData } = await supabase
-            .from('bookmarks')
-            .select('content_id, content_type')
-            .eq('user_id', user.id);
-          
-          userBookmarks = bookmarksData || [];
-        }
+      // If user is logged in, get their bookmarks to mark items as bookmarked
+      let userBookmarks: { content_id: string; content_type: string }[] = [];
+      if (user) {
+        const { data: bookmarksData } = await supabase
+          .from('bookmarks')
+          .select('content_id, content_type')
+          .eq('user_id', user.id);
+        
+        userBookmarks = bookmarksData || [];
+      }
 
-        // Check if an item is bookmarked
-        const isBookmarked = (id: string, type: string) => {
-          return userBookmarks.some(b => b.content_id === id && b.content_type === type);
-        };
+      // Check if an item is bookmarked
+      const isBookmarked = (id: string, type: string) => {
+        return userBookmarks.some(b => b.content_id === id && b.content_type === type);
+      };
 
-        // Transform data to ContentItem format
-        const audiobooks = (audiobooksData.data || []).map(item => ({
-          id: item.id,
-          type: 'audiobook' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
-          duration: '2 hours', // TODO: Calculate from chapters
-          views: 0, // Will be implemented with content_views
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            followers: 0 // Will be implemented with followers
-          },
-          category: item.category || 'Audiobook',
-          featured: item.featured,
-          bookmarked: isBookmarked(item.id, 'audiobook')
+      // Transform data to ContentItem format
+      const audiobooks = (audiobooksData.data || []).map(item => ({
+        id: item.id,
+        type: 'audiobook' as const,
+        title: item.title,
+        thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
+        duration: '2 hours', // TODO: Calculate from chapters
+        views: 0, // Will be implemented with content_views
+        createdAt: item.created_at,
+        creator: {
+          id: item.author.id,
+          name: item.author.name,
+          avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+          followers: 0 // Will be implemented with followers
+        },
+        category: item.category || 'Audiobook',
+        featured: item.featured,
+        bookmarked: isBookmarked(item.id, 'audiobook')
+      }));
+
+      const books = (booksData.data || []).map(item => ({
+        id: item.id,
+        type: 'ebook' as const,
+        title: item.title,
+        thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
+        duration: '4 hours', // TODO: Calculate based on content length
+        views: 0,
+        createdAt: item.created_at,
+        creator: {
+          id: item.author.id,
+          name: item.author.name,
+          avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+          followers: 0
+        },
+        category: item.category || 'Book',
+        featured: item.featured,
+        bookmarked: isBookmarked(item.id, 'book')
+      }));
+
+      const articles = (articlesData.data || []).map(item => ({
+        id: item.id,
+        type: 'article' as const,
+        title: item.title,
+        thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
+        duration: calculateReadTime(item.content),
+        views: 0,
+        createdAt: item.created_at,
+        creator: {
+          id: item.author.id,
+          name: item.author.name,
+          avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+          followers: 0
+        },
+        category: item.category || 'Article',
+        featured: item.featured,
+        bookmarked: isBookmarked(item.id, 'article')
+      }));
+
+      const podcasts = (podcastsData.data || []).map(item => ({
+        id: item.id,
+        type: 'podcast' as const,
+        title: item.title,
+        thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
+        duration: item.duration,
+        views: 0,
+        createdAt: item.created_at,
+        creator: {
+          id: item.author.id,
+          name: item.author.name,
+          avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+          followers: 0
+        },
+        category: item.category || 'Podcast',
+        featured: item.featured,
+        bookmarked: isBookmarked(item.id, 'podcast')
+      }));
+
+      // Check if we have more content to load
+      const hasMoreContent = 
+        audiobooksData.data?.length === 28 || 
+        booksData.data?.length === 28 || 
+        articlesData.data?.length === 20 || 
+        podcastsData.data?.length === 20;
+      
+      setHasMore(hasMoreContent);
+
+      if (append) {
+        setContent(prev => ({
+          audiobooks: [...prev.audiobooks, ...audiobooks],
+          ebooks: [...prev.ebooks, ...books],
+          articles: [...prev.articles, ...articles],
+          podcasts: [...prev.podcasts, ...podcasts]
         }));
-
-        const books = (booksData.data || []).map(item => ({
-          id: item.id,
-          type: 'ebook' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
-          duration: '4 hours', // TODO: Calculate based on content length
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            followers: 0
-          },
-          category: item.category || 'Book',
-          featured: item.featured,
-          bookmarked: isBookmarked(item.id, 'book')
-        }));
-
-        const articles = (articlesData.data || []).map(item => ({
-          id: item.id,
-          type: 'article' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
-          duration: calculateReadTime(item.content),
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            followers: 0
-          },
-          category: item.category || 'Article',
-          featured: item.featured,
-          bookmarked: isBookmarked(item.id, 'article')
-        }));
-
-        const podcasts = (podcastsData.data || []).map(item => ({
-          id: item.id,
-          type: 'podcast' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
-          duration: item.duration,
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            followers: 0
-          },
-          category: item.category || 'Podcast',
-          featured: item.featured,
-          bookmarked: isBookmarked(item.id, 'podcast')
-        }));
-
+      } else {
         setContent({
           audiobooks,
           ebooks: books,
           articles,
           podcasts
         });
-      } catch (err) {
-        console.error('Error loading content:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load content');
-      } finally {
-        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Error loading content:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load content');
+    } finally {
+      setLoading(false);
+      loadingMoreRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    setPage(1);
+    loadContent(1, false);
+  }, [selectedCategory, user]); // Add user as dependency to refresh when user changes
+
+  // Setup intersection observer for infinite scrolling
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMoreRef.current) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          loadContent(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    // Add observer to a sentinel element at the bottom of the content
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (sentinel) {
+      observer.observe(sentinel);
+    }
+
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel);
       }
     };
-
-    loadContent();
-  }, [selectedCategory, user]); // Add user as dependency to refresh when user changes
+  }, [hasMore, loading, page]);
 
   const handleAddToShelf = async (contentId: string, contentType: string) => {
     if (!user || !activeShelf) return;
@@ -363,7 +418,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     }
   };
 
-  if (loading) {
+  if (loading && page === 1) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -371,7 +426,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     );
   }
 
-  if (error) {
+  if (error && page === 1) {
     return (
       <div className="min-h-[400px] flex items-center justify-center text-center">
         <div className="space-y-2">
@@ -414,6 +469,20 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           activeShelf={activeShelf}
           onAddToShelf={handleAddToShelf}
         />
+        
+        {/* Infinite scroll sentinel */}
+        <div 
+          id="infinite-scroll-sentinel" 
+          className="h-20 flex items-center justify-center"
+        >
+          {hasMore && page > 1 && (
+            <div className="animate-pulse flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+              <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+              <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
