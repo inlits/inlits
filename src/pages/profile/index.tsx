@@ -11,27 +11,36 @@ import { Loader2 } from 'lucide-react';
 export function ProfilePage() {
   const { user, profile } = useAuth();
   const [userStats, setUserStats] = useState(null);
+  const [readingHistory, setReadingHistory] = useState(null);
+  const [bookmarks, setBookmarks] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadUserData = async () => {
-      if (!user) return;
+      if (!user || !profile) return;
       
       try {
         setLoading(true);
+        setError(null);
         
         // Get user stats from database
-        const { data, error } = await supabase.rpc(
+        const { data, error: fetchError } = await supabase.rpc(
           'get_user_profile',
-          { username: profile?.username }
+          { username: profile.username }
         );
         
-        if (error) throw error;
+        if (fetchError) throw fetchError;
+        
         if (data && data.length > 0) {
-          setUserStats(data[0]);
+          const userData = data[0];
+          setUserStats(userData.stats);
+          setReadingHistory(userData.reading_history);
+          setBookmarks(userData.bookmarks);
         }
-      } catch (error) {
-        console.error('Error loading user data:', error);
+      } catch (err) {
+        console.error('Error loading user data:', err);
+        setError(err.message || 'Failed to load profile data');
       } finally {
         setLoading(false);
       }
@@ -62,19 +71,23 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <ProfileHeader profile={userStats?.profile} isOwnProfile={true} />
+      <ProfileHeader profile={profile} isOwnProfile={true} />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
-          <IntellectualIdentity profile={userStats?.profile} />
-          <ProfileContributions profile={userStats?.profile} />
+          <IntellectualIdentity 
+            profile={profile} 
+            stats={userStats}
+            readingHistory={readingHistory}
+          />
+          <ProfileContributions profile={profile} />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-8">
-          <ProfileCircles profile={userStats?.profile} />
-          <ProfileAchievements profile={userStats?.profile} />
+          <ProfileCircles profile={profile} />
+          <ProfileAchievements profile={profile} />
         </div>
       </div>
     </div>

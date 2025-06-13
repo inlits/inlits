@@ -50,7 +50,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Book className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.books_read}</p>
+              <p className="text-2xl font-bold">{readingStats.books_read || 0}</p>
               <p className="text-sm text-muted-foreground">Books Completed</p>
             </div>
           </div>
@@ -61,7 +61,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Headphones className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.audiobooks_listened}</p>
+              <p className="text-2xl font-bold">{readingStats.audiobooks_listened || 0}</p>
               <p className="text-sm text-muted-foreground">Audiobooks Listened</p>
             </div>
           </div>
@@ -72,7 +72,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.articles_read}</p>
+              <p className="text-2xl font-bold">{readingStats.articles_read || 0}</p>
               <p className="text-sm text-muted-foreground">Articles Read</p>
             </div>
           </div>
@@ -99,9 +99,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
             <div>
               <h4 className="font-medium">{currentRead.title}</h4>
               <p className="text-sm text-muted-foreground">
-                {currentRead.type === 'article' ? 'Article' : 
-                 currentRead.type === 'book' ? 'Book' : 
-                 currentRead.type === 'audiobook' ? 'Audiobook' : 'Content'}
+                {currentRead.creator?.name || currentRead.author || 'Unknown Author'}
               </p>
             </div>
           </div>
@@ -123,16 +121,36 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
           <div>
             <p className="text-sm text-muted-foreground mb-2">Favorite Genres</p>
             <div className="flex flex-wrap gap-2">
-              {readingPreferences.map((genre: string) => (
-                <span
-                  key={genre}
-                  className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
-                >
-                  {genre}
-                </span>
-              ))}
+              {readingPreferences && readingPreferences.length > 0 ? (
+                readingPreferences.map((genre: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                  >
+                    {genre}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">No preferences set</span>
+              )}
             </div>
           </div>
+          
+          {stats?.favorite_categories && stats.favorite_categories.length > 0 && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Most Read Categories</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.favorite_categories.map((category: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 rounded-full bg-muted text-sm"
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
