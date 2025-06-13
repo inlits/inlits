@@ -1,20 +1,123 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Book, Headphones, FileText, BookOpen } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
-export function IntellectualIdentity() {
-  // Mock data for demonstration
+interface IntellectualIdentityProps {
+  profile?: any;
+}
+
+export function IntellectualIdentity({ profile }: IntellectualIdentityProps) {
+  const { user, profile: authProfile } = useAuth();
+  const userProfile = profile || authProfile;
+  const [stats, setStats] = useState({
+    booksCompleted: 0,
+    audiobooksListened: 0,
+    articlesRead: 0
+  });
+  const [currentRead, setCurrentRead] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Get content views to calculate stats
+        const { data: viewsData, error: viewsError } = await supabase
+          .from('content_views')
+          .select('content_type, content_id')
+          .eq('viewer_id', user.id);
+          
+        if (viewsError) throw viewsError;
+        
+        // Count views by content type
+        const counts = {
+          booksCompleted: viewsData?.filter(v => v.content_type === 'book').length || 0,
+          audiobooksListened: viewsData?.filter(v => v.content_type === 'audiobook').length || 0,
+          articlesRead: viewsData?.filter(v => v.content_type === 'article').length || 0
+        };
+        
+        setStats(counts);
+        
+        // Get most recent content view for current read
+        if (viewsData && viewsData.length > 0) {
+          const { data: recentView } = await supabase
+            .from('content_views')
+            .select('content_type, content_id, viewed_at')
+            .eq('viewer_id', user.id)
+            .order('viewed_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (recentView) {
+            // Get content details based on type
+            if (recentView.content_type === 'book') {
+              const { data: book } = await supabase
+                .from('books')
+                .select('title, author_id')
+                .eq('id', recentView.content_id)
+                .single();
+                
+              if (book) {
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('name, username')
+                  .eq('id', book.author_id)
+                  .single();
+                  
+                setCurrentRead({
+                  title: book.title,
+                  author: author?.name || author?.username || 'Unknown Author',
+                  progress: Math.floor(Math.random() * 100), // Mock progress for demo
+                  type: 'book'
+                });
+              }
+            } else if (recentView.content_type === 'audiobook') {
+              const { data: audiobook } = await supabase
+                .from('audiobooks')
+                .select('title, author_id')
+                .eq('id', recentView.content_id)
+                .single();
+                
+              if (audiobook) {
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('name, username')
+                  .eq('id', audiobook.author_id)
+                  .single();
+                  
+                setCurrentRead({
+                  title: audiobook.title,
+                  author: author?.name || author?.username || 'Unknown Author',
+                  progress: Math.floor(Math.random() * 100), // Mock progress for demo
+                  type: 'audiobook'
+                });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUserStats();
+  }, [user]);
+
+  // If no real data is available, use mock data
   const mockData = {
-    readingPreferences: {
-      genres: ['Science Fiction', 'Psychology', 'Business'],
-      authors: ['James Clear', 'Malcolm Gladwell', 'Andy Weir'],
-      contentTypes: ['Books', 'Audiobooks', 'Articles'],
-    },
+    readingPreferences: userProfile?.reading_preferences || ['Science Fiction', 'Psychology', 'Business'],
     stats: {
-      booksCompleted: 42,
-      audiobooksListened: 15,
-      articlesRead: 128,
+      booksCompleted: stats.booksCompleted || 42,
+      audiobooksListened: stats.audiobooksListened || 15,
+      articlesRead: stats.articlesRead || 128,
     },
-    currentRead: {
+    currentRead: currentRead || {
       title: 'Atomic Habits',
       author: 'James Clear',
       progress: 50,
@@ -104,9 +207,9 @@ export function IntellectualIdentity() {
           <div>
             <p className="text-sm text-muted-foreground mb-2">Favorite Genres</p>
             <div className="flex flex-wrap gap-2">
-              {mockData.readingPreferences.genres.map((genre) => (
+              {mockData.readingPreferences.map((genre, index) => (
                 <span
-                  key={genre}
+                  key={index}
                   className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
                 >
                   {genre}
@@ -117,9 +220,9 @@ export function IntellectualIdentity() {
           <div>
             <p className="text-sm text-muted-foreground mb-2">Favorite Authors</p>
             <div className="flex flex-wrap gap-2">
-              {mockData.readingPreferences.authors.map((author) => (
+              {['James Clear', 'Malcolm Gladwell', 'Andy Weir'].map((author, index) => (
                 <span
-                  key={author}
+                  key={index}
                   className="px-3 py-1 rounded-full bg-muted text-sm"
                 >
                   {author}
@@ -130,9 +233,9 @@ export function IntellectualIdentity() {
           <div>
             <p className="text-sm text-muted-foreground mb-2">Preferred Content</p>
             <div className="flex flex-wrap gap-2">
-              {mockData.readingPreferences.contentTypes.map((type) => (
+              {['Books', 'Audiobooks', 'Articles'].map((type, index) => (
                 <span
-                  key={type}
+                  key={index}
                   className="px-3 py-1 rounded-full bg-muted text-sm"
                 >
                   {type}
