@@ -3,17 +3,22 @@ import { Link } from 'react-router-dom';
 import { MapPin, Calendar, Settings, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
-export function ProfileHeader() {
-  const { profile } = useAuth();
-  const [isEditing, setIsEditing] = React.useState(false);
+interface ProfileHeaderProps {
+  profile?: any;
+  isOwnProfile?: boolean;
+}
 
-  // Mock data for demonstration
-  const mockProfile = {
-    avatar_url: `https://source.unsplash.com/random/200x200?portrait&sig=${Date.now()}`,
-    name: profile?.name || 'John Doe',
-    tagline: 'Exploring worlds through words',
-    location: 'San Francisco, CA',
-    joinedDate: 'March 2025',
+export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderProps) {
+  const { profile: authProfile } = useAuth();
+  const userProfile = profile || authProfile;
+  
+  // Use real data if available, otherwise use mock data
+  const profileData = {
+    avatar_url: userProfile?.avatar_url || `https://source.unsplash.com/random/200x200?portrait&sig=${Date.now()}`,
+    name: userProfile?.name || userProfile?.username || 'John Doe',
+    tagline: userProfile?.bio || 'Exploring worlds through words',
+    location: userProfile?.location || 'San Francisco, CA',
+    joinedDate: userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'March 2025',
     topBadges: [
       { id: '1', name: 'Bookworm', icon: '📚' },
       { id: '2', name: 'Audiophile', icon: '🎧' },
@@ -26,7 +31,7 @@ export function ProfileHeader() {
       {/* Cover Image */}
       <div className="h-48 rounded-xl overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
         <img
-          src="https://source.unsplash.com/random/1600x400?library"
+          src={userProfile?.cover_url || "https://source.unsplash.com/random/1600x400?library"}
           alt="Cover"
           className="w-full h-full object-cover opacity-50"
         />
@@ -39,8 +44,8 @@ export function ProfileHeader() {
           <div className="shrink-0">
             <div className="w-32 h-32 rounded-full border-4 border-background overflow-hidden bg-muted">
               <img
-                src={mockProfile.avatar_url}
-                alt={mockProfile.name}
+                src={profileData.avatar_url}
+                alt={profileData.name}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -50,8 +55,8 @@ export function ProfileHeader() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-2xl font-bold">{mockProfile.name}</h1>
-                <p className="text-muted-foreground">{mockProfile.tagline}</p>
+                <h1 className="text-2xl font-bold">{profileData.name}</h1>
+                <p className="text-muted-foreground">{profileData.tagline}</p>
               </div>
 
               <div className="flex items-center gap-3">
@@ -73,17 +78,17 @@ export function ProfileHeader() {
             <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
-                <span>{mockProfile.location}</span>
+                <span>{profileData.location}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {mockProfile.joinedDate}</span>
+                <span>Joined {profileData.joinedDate}</span>
               </div>
             </div>
 
             {/* Badges */}
             <div className="mt-4 flex items-center gap-3">
-              {mockProfile.topBadges.map(badge => (
+              {profileData.topBadges.map(badge => (
                 <div
                   key={badge.id}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
