@@ -88,6 +88,12 @@ interface CreatorData {
   }>;
 }
 
+// Utility function to check if a string is a valid UUID
+const isUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 export function CreatorProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
@@ -138,28 +144,35 @@ export function CreatorProfilePage() {
         setError(null);
         setDebugInfo(null);
 
-        // First, check if the profile exists
-        console.log('Checking profile for username:', username);
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', username)
-          .single();
+        // Determine if the parameter is a UUID or username
+        const isUserIdParam = isUUID(username);
+        console.log('Parameter type:', isUserIdParam ? 'UUID' : 'username', 'Value:', username);
+
+        // Query profile based on parameter type
+        let profileQuery = supabase.from('profiles').select('*');
+        
+        if (isUserIdParam) {
+          profileQuery = profileQuery.eq('id', username);
+        } else {
+          profileQuery = profileQuery.eq('username', username);
+        }
+
+        const { data: profileData, error: profileError } = await profileQuery.single();
 
         if (profileError) {
           console.error('Profile error:', profileError);
-          setDebugInfo({ type: 'profile_error', error: profileError });
+          setDebugInfo({ type: 'profile_error', error: profileError, isUserIdParam });
           throw new Error(`Profile not found: ${profileError.message}`);
         }
 
         if (!profileData) {
           console.error('No profile data found');
-          setDebugInfo({ type: 'no_profile' });
+          setDebugInfo({ type: 'no_profile', isUserIdParam });
           throw new Error('Profile not found');
         }
 
         console.log('Found profile:', profileData);
-        setDebugInfo(prev => ({ ...prev, profile: profileData }));
+        setDebugInfo(prev => ({ ...prev, profile: profileData, isUserIdParam }));
 
         if (profileData.role !== 'creator') {
           console.error('Profile is not a creator:', profileData.role);
@@ -167,10 +180,12 @@ export function CreatorProfilePage() {
           throw new Error('This profile is not a creator');
         }
 
-        // Then get the full creator data
-        console.log('Fetching creator profile data');
+        // Use the actual username for the RPC call, not the URL parameter
+        const actualUsername = profileData.username;
+        console.log('Fetching creator profile data for username:', actualUsername);
+        
         const { data: creatorData, error: creatorError } = await supabase
-          .rpc('get_creator_profile', { username });
+          .rpc('get_creator_profile', { username: actualUsername });
 
         if (creatorError) {
           console.error('Creator data error:', creatorError);
