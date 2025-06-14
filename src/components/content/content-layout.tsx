@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './content-card';
 import type { ContentItem } from '@/lib/types';
@@ -10,166 +10,6 @@ interface ContentLayoutProps {
   podcasts: ContentItem[];
   activeShelf?: string | null;
   onAddToShelf?: (contentId: string, contentType: string) => void;
-}
-
-interface ContentSectionProps {
-  sectionBooks: ContentItem[];
-  sectionArticles: ContentItem[];
-  sectionPodcasts: ContentItem[];
-  isFirstSection: boolean;
-  showHeading: boolean;
-  activeShelf?: string | null;
-  onAddToShelf?: (contentId: string, contentType: string) => void;
-}
-
-function ContentSection({
-  sectionBooks,
-  sectionArticles,
-  sectionPodcasts,
-  isFirstSection,
-  showHeading,
-  activeShelf,
-  onAddToShelf
-}: ContentSectionProps) {
-  // References for scrolling
-  const booksRowRef = useRef<HTMLDivElement>(null);
-  const articlesRef = useRef<HTMLDivElement>(null);
-  const podcastsRef = useRef<HTMLDivElement>(null);
-
-  // Scroll functions
-  const scroll = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
-    if (!ref.current) return;
-    
-    const scrollAmount = 300;
-    const container = ref.current;
-    const scrollPosition = direction === 'left' 
-      ? container.scrollLeft - scrollAmount 
-      : container.scrollLeft + scrollAmount;
-    
-    container.scrollTo({
-      left: scrollPosition,
-      behavior: 'smooth'
-    });
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Books row */}
-      {sectionBooks.length > 0 && (
-        <div className="space-y-2">
-          {showHeading && (
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                {isFirstSection ? 'Featured Books' : 'More Books to Explore'}
-              </h2>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => scroll(booksRowRef, 'left')}
-                  className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => scroll(booksRowRef, 'right')}
-                  className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-          <div 
-            ref={booksRowRef}
-            className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
-          >
-            {sectionBooks.map(item => (
-              <div key={item.id} className="flex-shrink-0 w-[180px]">
-                <ContentCard 
-                  item={item} 
-                  activeShelf={activeShelf}
-                  onAddToShelf={onAddToShelf}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Articles row - only show in first section */}
-      {isFirstSection && sectionArticles.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Latest Articles</h2>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => scroll(articlesRef, 'left')}
-                className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => scroll(articlesRef, 'right')}
-                className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div 
-            ref={articlesRef}
-            className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
-          >
-            {sectionArticles.map(item => (
-              <div key={item.id} className="flex-shrink-0 w-[280px]">
-                <ContentCard 
-                  item={item} 
-                  activeShelf={activeShelf}
-                  onAddToShelf={onAddToShelf}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Podcasts row - only show in first section */}
-      {isFirstSection && sectionPodcasts.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Featured Podcasts</h2>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => scroll(podcastsRef, 'left')}
-                className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => scroll(podcastsRef, 'right')}
-                className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div 
-            ref={podcastsRef}
-            className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
-          >
-            {sectionPodcasts.map(item => (
-              <div key={item.id} className="flex-shrink-0 w-[280px]">
-                <ContentCard 
-                  item={item} 
-                  activeShelf={activeShelf}
-                  onAddToShelf={onAddToShelf}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function ContentLayout({ 
@@ -229,88 +69,267 @@ export function ContentLayout({
     };
   }, [visibleSections]);
 
-  // Get content for sections
-  const booksPerRow = {
-    xl: 7, // Extra large screens
-    lg: 6, // Large screens
-    md: 4, // Medium screens
-    sm: 3, // Small screens
-    base: 2 // Mobile
-  };
+  // Create a section component for books
+  const BookSection = useCallback(({ 
+    books, 
+    title, 
+    startIndex 
+  }: { 
+    books: ContentItem[], 
+    title: string, 
+    startIndex: number 
+  }) => {
+    const rowRef = useRef<HTMLDivElement>(null);
 
-  const articlesPerRow = {
-    xl: 5, // Extra large screens
-    lg: 4, // Large screens
-    md: 3, // Medium screens
-    sm: 2, // Small screens
-    base: 1 // Mobile
-  };
+    const scroll = (direction: 'left' | 'right') => {
+      if (!rowRef.current) return;
+      
+      const scrollAmount = 300;
+      const container = rowRef.current;
+      const scrollPosition = direction === 'left' 
+        ? container.scrollLeft - scrollAmount 
+        : container.scrollLeft + scrollAmount;
+      
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth'
+      });
+    };
 
-  // Get featured articles and podcasts first
-  const featuredArticles = articles
-    .filter(item => item.featured)
-    .sort((a, b) => b.views - a.views);
-  const featuredPodcasts = podcasts
-    .filter(item => item.featured)
-    .sort((a, b) => b.views - a.views);
-
-  // Get remaining articles and podcasts
-  const remainingArticles = articles
-    .filter(item => !item.featured)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const remainingPodcasts = podcasts
-    .filter(item => !item.featured)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  // Combine featured and remaining content
-  const combinedArticles = [...featuredArticles, ...remainingArticles];
-  const combinedPodcasts = [...featuredPodcasts, ...remainingPodcasts];
-
-  // Calculate how many sections we need to display all books
-  const booksPerSection = booksPerRow.xl;
-  const totalBookSections = Math.ceil(combinedBooks.length / booksPerSection);
-  
-  // Limit visible sections based on state
-  const sectionsToShow = Math.min(totalBookSections, visibleSections);
-  
-  // Create sections array
-  const sections = [];
-  
-  for (let i = 0; i < sectionsToShow; i++) {
-    const startIndex = i * booksPerSection;
-    const sectionBooks = combinedBooks.slice(startIndex, startIndex + booksPerSection);
-    
-    // Only show articles and podcasts in the first section
-    const sectionArticles = i === 0 
-      ? combinedArticles.slice(0, articlesPerRow.xl)
-      : [];
-    const sectionPodcasts = i === 0 
-      ? combinedPodcasts.slice(0, articlesPerRow.xl)
-      : [];
-
-    const isFirstSection = i === 0;
-    const showHeading = i === 0 || (i === 1 && combinedBooks.length > booksPerRow.xl);
-
-    sections.push(
-      <ContentSection
-        key={i}
-        sectionBooks={sectionBooks}
-        sectionArticles={sectionArticles}
-        sectionPodcasts={sectionPodcasts}
-        isFirstSection={isFirstSection}
-        showHeading={showHeading}
-        activeShelf={activeShelf}
-        onAddToShelf={onAddToShelf}
-      />
+    return (
+      <div className="space-y-2 mb-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => scroll('left')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => scroll('right')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div 
+          ref={rowRef}
+          className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+        >
+          {books.slice(startIndex, startIndex + 7).map(item => (
+            <div key={item.id} className="flex-shrink-0 w-[180px]">
+              <ContentCard 
+                item={item} 
+                activeShelf={activeShelf}
+                onAddToShelf={onAddToShelf}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     );
-  }
+  }, [activeShelf, onAddToShelf]);
+
+  // Create sections for articles and podcasts
+  const ArticlesSection = useCallback(() => {
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    const scroll = (direction: 'left' | 'right') => {
+      if (!rowRef.current) return;
+      
+      const scrollAmount = 300;
+      const container = rowRef.current;
+      const scrollPosition = direction === 'left' 
+        ? container.scrollLeft - scrollAmount 
+        : container.scrollLeft + scrollAmount;
+      
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth'
+      });
+    };
+
+    // Get featured articles first
+    const featuredArticles = articles
+      .filter(item => item.featured)
+      .sort((a, b) => b.views - a.views);
+    
+    // Get remaining articles
+    const remainingArticles = articles
+      .filter(item => !item.featured)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Combine featured and remaining articles
+    const combinedArticles = [...featuredArticles, ...remainingArticles];
+
+    if (combinedArticles.length === 0) return null;
+
+    return (
+      <div className="space-y-2 mb-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Latest Articles</h2>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => scroll('left')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => scroll('right')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div 
+          ref={rowRef}
+          className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+        >
+          {combinedArticles.slice(0, 10).map(item => (
+            <div key={item.id} className="flex-shrink-0 w-[280px]">
+              <ContentCard 
+                item={item} 
+                activeShelf={activeShelf}
+                onAddToShelf={onAddToShelf}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }, [articles, activeShelf, onAddToShelf]);
+
+  const PodcastsSection = useCallback(() => {
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    const scroll = (direction: 'left' | 'right') => {
+      if (!rowRef.current) return;
+      
+      const scrollAmount = 300;
+      const container = rowRef.current;
+      const scrollPosition = direction === 'left' 
+        ? container.scrollLeft - scrollAmount 
+        : container.scrollLeft + scrollAmount;
+      
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth'
+      });
+    };
+
+    // Get featured podcasts first
+    const featuredPodcasts = podcasts
+      .filter(item => item.featured)
+      .sort((a, b) => b.views - a.views);
+    
+    // Get remaining podcasts
+    const remainingPodcasts = podcasts
+      .filter(item => !item.featured)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Combine featured and remaining podcasts
+    const combinedPodcasts = [...featuredPodcasts, ...remainingPodcasts];
+
+    if (combinedPodcasts.length === 0) return null;
+
+    return (
+      <div className="space-y-2 mb-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Featured Podcasts</h2>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => scroll('left')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => scroll('right')}
+              className="p-1.5 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div 
+          ref={rowRef}
+          className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+        >
+          {combinedPodcasts.slice(0, 10).map(item => (
+            <div key={item.id} className="flex-shrink-0 w-[280px]">
+              <ContentCard 
+                item={item} 
+                activeShelf={activeShelf}
+                onAddToShelf={onAddToShelf}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }, [podcasts, activeShelf, onAddToShelf]);
+
+  // Calculate how many book sections we need
+  const booksPerSection = 7; // 7 books per row
+  const totalSections = Math.ceil(combinedBooks.length / booksPerSection);
+  
+  // Log the total number of books and sections
+  console.log(`Total books: ${combinedBooks.length}, Total sections: ${totalSections}`);
+  
+  // Ensure we show at least 3 sections or all sections if there are fewer
+  const minSections = Math.min(totalSections, 3);
+  const actualVisibleSections = Math.max(visibleSections, minSections);
 
   return (
-    <div className="space-y-8">
-      {sections}
+    <div className="space-y-6">
+      {/* Featured Books Section */}
+      {featuredBooks.length > 0 && (
+        <BookSection 
+          books={featuredBooks} 
+          title="Featured Books" 
+          startIndex={0} 
+        />
+      )}
+
+      {/* Articles Section */}
+      <ArticlesSection />
+
+      {/* Podcasts Section */}
+      <PodcastsSection />
+
+      {/* More Books to Explore Sections */}
+      {remainingBooks.length > 0 && (
+        <BookSection 
+          books={remainingBooks} 
+          title="More Books to Explore" 
+          startIndex={0} 
+        />
+      )}
+
+      {/* Additional Book Sections */}
+      {Array.from({ length: Math.min(actualVisibleSections - 1, totalSections - 1) }).map((_, i) => {
+        const startIndex = (i + 1) * booksPerSection;
+        // Only render if there are books to show in this section
+        if (startIndex < combinedBooks.length) {
+          return (
+            <BookSection 
+              key={`section-${i+1}`}
+              books={combinedBooks} 
+              title={`Books Section ${i+2}`} 
+              startIndex={startIndex} 
+            />
+          );
+        }
+        return null;
+      })}
       
       {/* Infinite scroll trigger */}
-      {sectionsToShow < totalBookSections && (
+      {actualVisibleSections < totalSections && (
         <div 
           ref={loadMoreTriggerRef} 
           className="h-20 flex items-center justify-center"

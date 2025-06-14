@@ -79,7 +79,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
 
         // Load content in parallel with category filter
         const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
-          // Load audiobooks
+          // Load audiobooks - increased limit to 100
           supabase
             .from('audiobooks')
             .select(`
@@ -93,16 +93,17 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               author:profiles!audiobooks_author_id_fkey (
                 id,
                 name,
-                avatar_url
+                avatar_url,
+                username
               )
             `)
             .eq('status', 'published')
             .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(28),
+            .limit(100),
 
-          // Load books
+          // Load books - increased limit to 100
           supabase
             .from('books')
             .select(`
@@ -116,16 +117,17 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               author:profiles!books_author_id_fkey (
                 id,
                 name,
-                avatar_url
+                avatar_url,
+                username
               )
             `)
             .eq('status', 'published')
             .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(28),
+            .limit(100),
 
-          // Load articles
+          // Load articles - increased limit to 50
           supabase
             .from('articles')
             .select(`
@@ -140,16 +142,17 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               author:profiles!articles_author_id_fkey (
                 id,
                 name,
-                avatar_url
+                avatar_url,
+                username
               )
             `)
             .eq('status', 'published')
             .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(20),
+            .limit(50),
 
-          // Load podcasts
+          // Load podcasts - increased limit to 50
           supabase
             .from('podcast_episodes')
             .select(`
@@ -164,15 +167,18 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               author:profiles!podcast_episodes_author_id_fkey (
                 id,
                 name,
-                avatar_url
+                avatar_url,
+                username
               )
             `)
             .eq('status', 'published')
             .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(20)
+            .limit(50)
         ]);
+
+        console.log(`Loaded ${booksData.data?.length || 0} books and ${audiobooksData.data?.length || 0} audiobooks`);
 
         // Calculate read time for articles based on content length
         const calculateReadTime = (content: string): string => {
@@ -211,6 +217,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
             id: item.author.id,
             name: item.author.name,
             avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
             followers: 0 // Will be implemented with followers
           },
           category: item.category || 'Audiobook',
@@ -230,6 +237,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
             id: item.author.id,
             name: item.author.name,
             avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
             followers: 0
           },
           category: item.category || 'Book',
@@ -249,6 +257,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
             id: item.author.id,
             name: item.author.name,
             avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
             followers: 0
           },
           category: item.category || 'Article',
@@ -268,6 +277,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
             id: item.author.id,
             name: item.author.name,
             avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
             followers: 0
           },
           category: item.category || 'Podcast',
