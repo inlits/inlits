@@ -311,18 +311,27 @@ export function ContentLayout({
         />
       )}
 
-      {/* Additional Book Sections */}
+      {/* Additional Book Sections - without titles */}
       {Array.from({ length: Math.min(actualVisibleSections - 1, totalSections - 1) }).map((_, i) => {
         const startIndex = (i + 1) * booksPerSection;
         // Only render if there are books to show in this section
         if (startIndex < combinedBooks.length) {
           return (
-            <BookSection 
-              key={`section-${i+1}`}
-              books={combinedBooks} 
-              title={`Books Section ${i+2}`} 
-              startIndex={startIndex} 
-            />
+            <div key={`section-${i+1}`} className="mb-8">
+              <div 
+                className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+              >
+                {combinedBooks.slice(startIndex, startIndex + booksPerSection).map(item => (
+                  <div key={item.id} className="flex-shrink-0 w-[180px]">
+                    <ContentCard 
+                      item={item} 
+                      activeShelf={activeShelf}
+                      onAddToShelf={onAddToShelf}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           );
         }
         return null;
