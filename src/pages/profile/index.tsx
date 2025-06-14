@@ -27,7 +27,7 @@ export function ProfilePage() {
         // Get user profile data from database
         const { data, error: fetchError } = await supabase.rpc(
           'get_user_profile',
-          { username_param: profile.username }
+          { p_username: profile.username }
         );
         
         if (fetchError) throw fetchError;
