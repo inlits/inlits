@@ -313,15 +313,18 @@ export function ContentLayout({
 
       {/* Additional Book Sections - without titles */}
       {Array.from({ length: Math.min(actualVisibleSections - 1, totalSections - 1) }).map((_, i) => {
+        // Calculate the correct starting index for each section
+        // We need to skip the first section (index 0) which is already shown above
         const startIndex = (i + 1) * booksPerSection;
+        
         // Only render if there are books to show in this section
-        if (startIndex < combinedBooks.length) {
+        if (startIndex < remainingBooks.length) {
           return (
             <div key={`section-${i+1}`} className="mb-8">
               <div 
                 className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
               >
-                {combinedBooks.slice(startIndex, startIndex + booksPerSection).map(item => (
+                {remainingBooks.slice(startIndex, startIndex + booksPerSection).map(item => (
                   <div key={item.id} className="flex-shrink-0 w-[180px]">
                     <ContentCard 
                       item={item} 
