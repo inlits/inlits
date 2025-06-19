@@ -44,6 +44,11 @@ const SettingsPage = React.lazy(() => import('./pages/dashboard/settings').then(
 const ReaderPage = React.lazy(() => import('./pages/reader/[id]').then(module => ({ default: module.ReaderPage })));
 const PlayerPage = React.lazy(() => import('./pages/player/[id]').then(module => ({ default: module.PlayerPage })));
 const SearchPage = React.lazy(() => import('./pages/search').then(module => ({ default: module.default })));
+const ContactPage = React.lazy(() => import('./pages/contact').then(module => ({ default: module.default })));
+const PrivacyPage = React.lazy(() => import('./pages/privacy').then(module => ({ default: module.default })));
+const TermsPage = React.lazy(() => import('./pages/terms').then(module => ({ default: module.default })));
+const RefundPolicyPage = React.lazy(() => import('./pages/refund-policy').then(module => ({ default: module.default })));
+const CopyrightPage = React.lazy(() => import('./pages/copyright').then(module => ({ default: module.default })));
 
 function LoadingFallback() {
   return (
@@ -189,6 +194,48 @@ function App() {
                     element={
                       <MainLayout>
                         <SearchPage />
+                      </MainLayout>
+                    }
+                  />
+
+                  {/* Static Pages */}
+                  <Route
+                    path="/contact"
+                    element={
+                      <MainLayout>
+                        <ContactPage />
+                      </MainLayout>
+                    }
+                  />
+                  <Route
+                    path="/privacy"
+                    element={
+                      <MainLayout>
+                        <PrivacyPage />
+                      </MainLayout>
+                    }
+                  />
+                  <Route
+                    path="/terms"
+                    element={
+                      <MainLayout>
+                        <TermsPage />
+                      </MainLayout>
+                    }
+                  />
+                  <Route
+                    path="/refund-policy"
+                    element={
+                      <MainLayout>
+                        <RefundPolicyPage />
+                      </MainLayout>
+                    }
+                  />
+                  <Route
+                    path="/copyright"
+                    element={
+                      <MainLayout>
+                        <CopyrightPage />
                       </MainLayout>
                     }
                   />
