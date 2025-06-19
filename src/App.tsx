@@ -14,6 +14,7 @@ import { ConnectionProvider } from './lib/connection-context';
 import { AudioProvider } from './lib/audio-context';
 import { Loader2 } from 'lucide-react';
 import { AudioPlayer } from './components/audio/audio-player';
+import { Footer } from './components/layout/footer';
 
 // Lazy loaded components with proper dynamic imports
 const SignInPage = React.lazy(() => import('./pages/auth/sign-in').then(module => ({ default: module.SignInPage })));
@@ -45,10 +46,11 @@ const ReaderPage = React.lazy(() => import('./pages/reader/[id]').then(module =>
 const PlayerPage = React.lazy(() => import('./pages/player/[id]').then(module => ({ default: module.PlayerPage })));
 const SearchPage = React.lazy(() => import('./pages/search').then(module => ({ default: module.default })));
 const ContactPage = React.lazy(() => import('./pages/contact').then(module => ({ default: module.default })));
-const PrivacyPage = React.lazy(() => import('./pages/privacy').then(module => ({ default: module.default })));
-const TermsPage = React.lazy(() => import('./pages/terms').then(module => ({ default: module.default })));
-const RefundPolicyPage = React.lazy(() => import('./pages/refund-policy').then(module => ({ default: module.default })));
+const PrivacyPage = React.lazy(() => import('./pages/privacy').then(module => ({ default: module.PrivacyPage })));
+const TermsPage = React.lazy(() => import('./pages/terms').then(module => ({ default: module.TermsPage })));
+const RefundPolicyPage = React.lazy(() => import('./pages/refund-policy').then(module => ({ default: module.RefundPolicyPage })));
 const CopyrightPage = React.lazy(() => import('./pages/copyright').then(module => ({ default: module.default })));
+const AboutPage = React.lazy(() => import('./pages/about').then(module => ({ default: module.AboutPage })));
 
 function LoadingFallback() {
   return (
@@ -90,6 +92,17 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     { id: "12", name: "Literature", slug: "literature" },
   ];
 
+  // Check if the current page is a static page that should show the footer
+  const shouldShowFooter = [
+    '/',
+    '/about',
+    '/contact',
+    '/privacy',
+    '/terms',
+    '/refund-policy',
+    '/copyright'
+  ].includes(location.pathname);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -117,6 +130,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           {React.isValidElement(children) && React.cloneElement(children as React.ReactElement, { selectedCategory })}
         </div>
       </main>
+
+      {/* Show footer on static pages */}
+      {shouldShowFooter && <Footer />}
 
       {/* Fixed Audio Player */}
       {isPlayerVisible && currentAudio && (
@@ -199,6 +215,14 @@ function App() {
                   />
 
                   {/* Static Pages */}
+                  <Route
+                    path="/about"
+                    element={
+                      <MainLayout>
+                        <AboutPage />
+                      </MainLayout>
+                    }
+                  />
                   <Route
                     path="/contact"
                     element={
