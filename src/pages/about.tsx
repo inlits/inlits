@@ -364,7 +364,7 @@ export function AboutPage() {
                 delay: 0.3
               },
               {
-                quote: "The book clubs and discussion features have connected me with like-minded people from around the world. It's more than just a reading platform.",
+                quote: "It's exciting to see a platform focusing on creators and readers from South Asia. Inlits is exactly what our community needed.",
                 author: "Aisha Patel",
                 role: "Book Enthusiast",
                 avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150",
