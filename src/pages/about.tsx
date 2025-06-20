@@ -357,7 +357,7 @@ export function AboutPage() {
                 delay: 0.1
               },
               {
-                quote: "As a creator, I've found an engaged audience who truly appreciates in-depth content. The platform tools make publishing a breeze.",
+                quote: "The storytelling and sound design on Inlits make learning feel like an experience, not just an activity. Absolutely love it!",
                 author: "Michael Chen",
                 role: "Content Creator",
                 avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150",
