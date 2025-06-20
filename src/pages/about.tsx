@@ -217,44 +217,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* App Screenshot Section */}
-      <section className="py-20 md:py-32 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Experience Inlits</h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              A beautiful, intuitive interface designed for focused learning
-            </p>
-          </div>
-
-          <div className="relative max-w-6xl mx-auto">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-1"></div>
-            <div className="relative bg-card border rounded-2xl p-4 shadow-xl -rotate-1 hover:rotate-0 transition-transform duration-500 overflow-hidden">
-              <img 
-                src="https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg" 
-                alt="Inlits Dashboard" 
-                className="w-full h-auto rounded-lg"
-              />
-            </div>
-
-            <div className="absolute -bottom-10 -left-10 md:-left-20 w-40 md:w-64 rotate-6 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-3 hover:scale-105">
-              <img 
-                src="https://images.pexels.com/photos/4050421/pexels-photo-4050421.jpeg" 
-                alt="Mobile App" 
-                className="rounded-lg"
-              />
-            </div>
-            <div className="absolute -bottom-5 -right-5 md:-right-16 w-32 md:w-48 -rotate-3 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-0 hover:scale-105">
-              <img 
-                src="https://images.pexels.com/photos/4050326/pexels-photo-4050326.jpeg" 
-                alt="Tablet App" 
-                className="rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* How It Works Section */}
       <section className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent">
         <div className="container mx-auto px-4">
