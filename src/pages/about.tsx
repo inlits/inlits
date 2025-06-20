@@ -438,7 +438,7 @@ export function AboutPage() {
               },
               {
                 name: "Pro",
-                price: "$9.99",
+                price: "$5.99",
                 period: "per month",
                 description: "For serious learners",
                 features: [
