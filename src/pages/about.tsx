@@ -364,10 +364,10 @@ export function AboutPage() {
                 delay: 0.3
               },
               {
-                quote: "It's exciting to see a platform focusing on creators and readers from South Asia. Inlits is exactly what our community needed.",
+                quote: "The book clubs and discussion features have connected me with like-minded people from around the world. It's more than just a reading platform.",
                 author: "Aisha Patel",
-                role: "Book Enthusiast",
-                avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150",
+                role: "Bilal Siddique",
+                avatar: "https://images.unsplash.com/photo-1722354980566-ec247cb4f1a8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGFraXN0YW5pJTIwYm95c3xlbnwwfHwwfHx8MA%3D%3D",
                 delay: 0.5
               }
             ].map((testimonial, index) => (
