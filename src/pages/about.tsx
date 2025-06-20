@@ -454,13 +454,13 @@ export function AboutPage() {
                 delay: 0.2
               },
               {
-                name: "Friend of inlits",
+                name: "Creator",
                 price: "$19.99",
                 period: "per month",
                 description: "For content creators",
                 features: [
                   "Everything in Pro",
-                  "More readings tools",
+                  "Publishing tools",
                   "Analytics dashboard",
                   "Monetization options",
                   "Creator community",
