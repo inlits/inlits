@@ -460,7 +460,7 @@ export function AboutPage() {
                 description: "For content creators",
                 features: [
                   "Everything in Pro",
-                  "Publishing tools",
+                  "More readings tools",
                   "Analytics dashboard",
                   "Monetization options",
                   "Creator community",
