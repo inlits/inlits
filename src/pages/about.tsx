@@ -358,7 +358,7 @@ export function AboutPage() {
               },
               {
                 quote: "The storytelling and sound design on Inlits make learning feel like an experience, not just an activity. Absolutely love it!",
-                author: "Michael Chen",
+                author: "Esha Malik ",
                 role: "student",
                 avatar: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150",
                 delay: 0.3
