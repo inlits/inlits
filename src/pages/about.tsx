@@ -70,7 +70,7 @@ export function AboutPage() {
       {/* Hero Section */}
       <section 
         ref={heroRef} 
-        className="relative py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 "
+        className="relative py-20 md:py-32 opacity-0 transition-all duration-1000"
         style={{ animationDelay: '0.2s' }}
       >
         <div className="absolute inset-0 overflow-hidden -z-10">
