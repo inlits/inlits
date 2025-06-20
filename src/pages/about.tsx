@@ -57,12 +57,12 @@ export function AboutPage() {
 
   // Book covers for infinite carousel
   const bookCovers = [
-    'https://images.pexels.com/photos/1907785/pexels-photo-1907785.jpeg',
-    'https://images.pexels.com/photos/3747139/pexels-photo-3747139.jpeg',
-    'https://images.pexels.com/photos/1148399/pexels-photo-1148399.jpeg',
-    'https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg',
-    'https://images.pexels.com/photos/1765033/pexels-photo-1765033.jpeg',
-    'https://images.pexels.com/photos/1738498/pexels-photo-1738498.jpeg',
+    'https://ia800703.us.archive.org/0/items/atomic_202504/atomic.jpg',
+    'https://dailytimes.com.pk/assets/uploads/2021/07/06/the-alchemist-a-graphic-novel.jpg',
+    'https://ia600505.us.archive.org/27/items/125585369/dass.jpg',
+    'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1709986452i/204927599.jpg',
+    'https://dn720708.ca.archive.org/0/items/9781785040207-grit/0.1869333853005194.jpg',
+    'https://yvjrakgbqqazedjltflw.supabase.co/storage/v1/object/public/audiobook-covers/dad3a501-07f9-4830-8868-8fd89c11583a/0.9782089675019395.jpg',
   ];
 
   return (
