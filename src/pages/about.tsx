@@ -292,31 +292,7 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section 
-        ref={statsRef}
-        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 bg-background"
-      >
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16">
-            {[
-              { number: "500K+", label: "Active Users" },
-              { number: "1.2M+", label: "Content Items" },
-              { number: "50K+", label: "Creators" },
-              { number: "120+", label: "Countries" }
-            ].map((stat, index) => (
-              <div 
-                key={index} 
-                className="text-center fade-in-element opacity-0 transition-all duration-700"
-                style={{ animationDelay: `${0.1 * index}s` }}
-              >
-                <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{stat.number}</div>
-                <div className="text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* Content Categories Section */}
       <section className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent">
