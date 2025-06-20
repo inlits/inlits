@@ -78,7 +78,7 @@ export function AboutPage() {
           <div className="absolute top-[60%] -left-[5%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto px-0 text-center">
           <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
             Discover a new way to learn
           </div>
