@@ -143,7 +143,7 @@ export function AboutPage() {
               5+ Countries
             </div>
             <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.3s' }}>
-              10,000+ Books Read
+              50,000+ Books Read
             </div>
           </div>
         </div>
