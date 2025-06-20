@@ -93,8 +93,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   ];
 
   // Check if the current page is a static page that should show the footer
+  // Removed '/' from this list to not show footer on home page
   const shouldShowFooter = [
-    '/',
     '/about',
     '/contact',
     '/privacy',
@@ -131,7 +131,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Show footer on static pages */}
+      {/* Show footer on static pages except home page */}
       {shouldShowFooter && <Footer />}
 
       {/* Fixed Audio Player */}
