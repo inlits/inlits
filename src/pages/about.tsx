@@ -23,7 +23,7 @@ export function AboutPage() {
   const testimonialsRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
 
-  // Intersection Observer for animations
+  // Setup intersection observer for scroll animations
   useEffect(() => {
     const observerOptions = {
       root: null,
@@ -55,15 +55,24 @@ export function AboutPage() {
     return () => observer.disconnect();
   }, []);
 
+  // Book covers for infinite carousel
+  const bookCovers = [
+    '/assets/book-cover-1.jpg',
+    '/assets/book-cover-2.jpg',
+    '/assets/book-cover-3.jpg',
+    '/assets/book-cover-4.jpg',
+    '/assets/book-cover-5.jpg',
+    '/assets/book-cover-6.jpg',
+  ].map((_, i) => `https://source.unsplash.com/random/400x600?book&sig=${i+Date.now()}`);
+
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
       <section 
         ref={heroRef} 
-        className="relative py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8"
+        className="relative py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 bg-gradient-to-br from-primary/5 to-primary/10"
         style={{ animationDelay: '0.2s' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 -z-10"></div>
         <div className="absolute inset-0 overflow-hidden -z-10">
           <div className="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl"></div>
           <div className="absolute top-[60%] -left-[5%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-3xl"></div>
@@ -94,46 +103,48 @@ export function AboutPage() {
             </Link>
           </div>
 
-          {/* Floating devices mockup */}
-          <div className="relative mt-16 md:mt-24 max-w-5xl mx-auto">
-            <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent h-20 bottom-0 z-10"></div>
-            <img 
-              src="https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg" 
-              alt="Inlits Platform" 
-              className="rounded-t-xl shadow-2xl border border-primary/10"
-            />
-            <div className="absolute -bottom-10 -left-10 md:-left-20 w-40 md:w-64 rotate-6 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-3 hover:scale-105">
-              <img 
-                src="https://images.pexels.com/photos/4050421/pexels-photo-4050421.jpeg" 
-                alt="Mobile App" 
-                className="rounded-lg"
-              />
-            </div>
-            <div className="absolute -bottom-5 -right-5 md:-right-16 w-32 md:w-48 -rotate-3 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-0 hover:scale-105">
-              <img 
-                src="https://images.pexels.com/photos/4050326/pexels-photo-4050326.jpeg" 
-                alt="Tablet App" 
-                className="rounded-lg"
-              />
+          {/* Infinite Book Cover Carousel */}
+          <div className="relative mt-16 max-w-6xl mx-auto overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background z-10"></div>
+            <div className="flex gap-4 animate-carousel">
+              {[...bookCovers, ...bookCovers].map((cover, i) => (
+                <div 
+                  key={i} 
+                  className="w-40 h-56 flex-shrink-0 rounded-lg overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300"
+                  style={{ 
+                    transform: `rotate(${Math.sin(i * 0.5) * 5}deg)`,
+                    animationDelay: `${i * 0.1}s`
+                  }}
+                >
+                  <img 
+                    src={cover} 
+                    alt="Book Cover" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trusted By Section */}
-      <section className="py-12 md:py-16 border-y">
+      {/* Trusted By Section - More realistic */}
+      <section className="py-12 md:py-16 border-y bg-background">
         <div className="container mx-auto px-4">
           <p className="text-center text-muted-foreground mb-8">Trusted by readers and creators worldwide</p>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            {['Harvard University', 'Stanford', 'MIT Press', 'Oxford Learning', 'Cambridge Press', 'Princeton'].map((partner, index) => (
-              <div 
-                key={index} 
-                className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700"
-                style={{ animationDelay: `${0.1 * index}s` }}
-              >
-                {partner}
-              </div>
-            ))}
+            <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700">
+              10,000+ Active Readers
+            </div>
+            <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.1s' }}>
+              500+ Content Creators
+            </div>
+            <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.2s' }}>
+              50+ Countries
+            </div>
+            <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.3s' }}>
+              100,000+ Books Read
+            </div>
           </div>
         </div>
       </section>
@@ -141,7 +152,7 @@ export function AboutPage() {
       {/* Features Section */}
       <section 
         ref={featuresRef}
-        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8"
+        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 bg-gradient-to-br from-primary/5 to-transparent"
       >
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -206,8 +217,46 @@ export function AboutPage() {
         </div>
       </section>
 
+      {/* App Screenshot Section */}
+      <section className="py-20 md:py-32 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Experience Inlits</h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              A beautiful, intuitive interface designed for focused learning
+            </p>
+          </div>
+
+          <div className="relative max-w-6xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-1"></div>
+            <div className="relative bg-card border rounded-2xl p-4 shadow-xl -rotate-1 hover:rotate-0 transition-transform duration-500 overflow-hidden">
+              <img 
+                src="https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg" 
+                alt="Inlits Dashboard" 
+                className="w-full h-auto rounded-lg"
+              />
+            </div>
+
+            <div className="absolute -bottom-10 -left-10 md:-left-20 w-40 md:w-64 rotate-6 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-3 hover:scale-105">
+              <img 
+                src="https://images.pexels.com/photos/4050421/pexels-photo-4050421.jpeg" 
+                alt="Mobile App" 
+                className="rounded-lg"
+              />
+            </div>
+            <div className="absolute -bottom-5 -right-5 md:-right-16 w-32 md:w-48 -rotate-3 shadow-xl rounded-lg border border-primary/20 transition-transform hover:rotate-0 hover:scale-105">
+              <img 
+                src="https://images.pexels.com/photos/4050326/pexels-photo-4050326.jpeg" 
+                alt="Tablet App" 
+                className="rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works Section */}
-      <section className="py-20 md:py-32 bg-primary/5">
+      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How Inlits Works</h2>
@@ -287,7 +336,7 @@ export function AboutPage() {
       {/* Stats Section */}
       <section 
         ref={statsRef}
-        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8"
+        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 bg-background"
       >
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16">
@@ -311,7 +360,7 @@ export function AboutPage() {
       </section>
 
       {/* Content Categories Section */}
-      <section className="py-20 md:py-32 bg-primary/5">
+      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore Our Content Categories</h2>
@@ -350,10 +399,10 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section - Modern Design */}
       <section 
         ref={testimonialsRef}
-        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8"
+        className="py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 bg-background"
       >
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -389,24 +438,31 @@ export function AboutPage() {
             ].map((testimonial, index) => (
               <div 
                 key={index} 
-                className="bg-card border rounded-xl p-8 shadow-sm hover:shadow-md transition-all fade-in-element opacity-0"
+                className="relative bg-card border rounded-xl p-8 shadow-sm hover:shadow-md transition-all fade-in-element opacity-0"
                 style={{ animationDelay: `${testimonial.delay}s` }}
               >
-                <div className="flex items-center gap-1 mb-4">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-                  ))}
+                {/* Quote mark */}
+                <div className="absolute -top-5 -left-2 text-6xl text-primary/10 font-serif">
+                  "
                 </div>
-                <p className="text-lg mb-6">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={testimonial.avatar} 
-                    alt={testimonial.author} 
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="font-semibold">{testimonial.author}</h4>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                    ))}
+                  </div>
+                  <p className="text-lg mb-6 relative">"{testimonial.quote}"</p>
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={testimonial.avatar} 
+                      alt={testimonial.author} 
+                      className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
+                    />
+                    <div>
+                      <h4 className="font-semibold">{testimonial.author}</h4>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -418,7 +474,7 @@ export function AboutPage() {
       {/* Pricing Section */}
       <section 
         ref={pricingRef}
-        className="py-20 md:py-32 bg-primary/5 opacity-0 transition-all duration-1000 translate-y-8"
+        className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-all duration-1000 translate-y-8"
       >
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -529,7 +585,7 @@ export function AboutPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 md:py-32">
+      <section className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
@@ -579,7 +635,7 @@ export function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-32 bg-primary/5">
+      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 to-primary/5">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Start Your Learning Journey?</h2>
@@ -605,7 +661,7 @@ export function AboutPage() {
       </section>
 
       {/* App Features Showcase */}
-      <section className="py-20 md:py-32">
+      <section className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1 fade-in-element opacity-0 transition-all duration-1000">
@@ -666,7 +722,7 @@ export function AboutPage() {
       </section>
 
       {/* Community Section */}
-      <section className="py-20 md:py-32 bg-primary/5">
+      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 to-primary/5">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative fade-in-element opacity-0 transition-all duration-1000">
@@ -756,7 +812,7 @@ export function AboutPage() {
       </section>
 
       {/* Creator Section */}
-      <section className="py-20 md:py-32">
+      <section className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="fade-in-element opacity-0 transition-all duration-1000">
@@ -816,7 +872,7 @@ export function AboutPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 md:py-32 bg-primary/10">
+      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/20 to-primary/5">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 max-w-3xl mx-auto leading-tight">
             Start Your Learning Journey Today
@@ -840,6 +896,19 @@ export function AboutPage() {
         .animate-in {
           opacity: 1 !important;
           transform: translateY(0) !important;
+        }
+        
+        @keyframes carousel {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        
+        .animate-carousel {
+          animation: carousel 30s linear infinite;
         }
       `}</style>
     </div>
