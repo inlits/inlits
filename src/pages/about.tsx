@@ -454,7 +454,7 @@ export function AboutPage() {
                 delay: 0.2
               },
               {
-                name: "Friend of Medium",
+                name: "Friend of inlits",
                 price: "$19.99",
                 period: "per month",
                 description: "For content creators",
