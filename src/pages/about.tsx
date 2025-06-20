@@ -126,7 +126,7 @@ export function AboutPage() {
       </section>
 
       {/* Trusted By Section - More realistic */}
-      <section className="py-4 md:py-12 bg-background">
+      <section className="py-8 md:py-12 bg-background">
         <div className="container mx-auto px-4">
           <p className="text-center text-muted-foreground mb-8">Trusted by readers and creators worldwide</p>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
@@ -215,7 +215,7 @@ export function AboutPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent">
+      <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How Inlits Works</h2>
