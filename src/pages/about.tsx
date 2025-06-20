@@ -353,7 +353,7 @@ export function AboutPage() {
                 quote: "Finally, a platform where Urdu and regional language content feels alive and beautifully delivered. Inlits is truly setting a new standard!",
                 author: "Faizan Ahmad",
                 role: "Software Engineer",
-                avatar: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
+                avatar: "https://c1.wallpaperflare.com/preview/656/461/252/outdoors-man-lifestyle-young-portrait-architecture.jpg",
                 delay: 0.1
               },
               {
