@@ -137,13 +137,13 @@ export function AboutPage() {
               10,000+ Active Readers
             </div>
             <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.1s' }}>
-              500+ Content Creators
+              50+ Content Creators
             </div>
             <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.2s' }}>
-              50+ Countries
+              5+ Countries
             </div>
             <div className="text-xl font-semibold text-muted-foreground/70 fade-in-element opacity-0 transition-all duration-700" style={{ animationDelay: '0.3s' }}>
-              100,000+ Books Read
+              10,000+ Books Read
             </div>
           </div>
         </div>
