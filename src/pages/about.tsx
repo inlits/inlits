@@ -126,7 +126,7 @@ export function AboutPage() {
       </section>
 
       {/* Trusted By Section - More realistic */}
-      <section className="py-12 md:py-16 bg-background">
+      <section className="py-8 md:py-16 bg-background">
         <div className="container mx-auto px-4">
           <p className="text-center text-muted-foreground mb-8">Trusted by readers and creators worldwide</p>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
