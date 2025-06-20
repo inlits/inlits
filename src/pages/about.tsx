@@ -350,7 +350,7 @@ export function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                quote: "Inlits has transformed how I consume educational content. The personalized recommendations are spot-on!",
+                quote: "Finally, a platform where Urdu and regional language content feels alive and beautifully delivered. Inlits is truly setting a new standard!",
                 author: "Sarah Johnson",
                 role: "Software Engineer",
                 avatar: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
