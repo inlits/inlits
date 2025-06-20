@@ -351,7 +351,7 @@ export function AboutPage() {
             {[
               {
                 quote: "Finally, a platform where Urdu and regional language content feels alive and beautifully delivered. Inlits is truly setting a new standard!",
-                author: "Sarah Johnson",
+                author: "Faizan Ahmad",
                 role: "Software Engineer",
                 avatar: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
                 delay: 0.1
