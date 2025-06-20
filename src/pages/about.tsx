@@ -454,7 +454,7 @@ export function AboutPage() {
                 delay: 0.2
               },
               {
-                name: "Creator",
+                name: "Friend of Medium",
                 price: "$19.99",
                 period: "per month",
                 description: "For content creators",
