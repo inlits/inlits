@@ -57,13 +57,13 @@ export function AboutPage() {
 
   // Book covers for infinite carousel
   const bookCovers = [
-    'https://dailytimes.com.pk/assets/uploads/2021/07/06/the-alchemist-a-graphic-novel.jpg',
-    'https://ia600505.us.archive.org/27/items/125585369/dass.jpg',
-    '/assets/book-cover-3.jpg',
-    '/assets/book-cover-4.jpg',
-    '/assets/book-cover-5.jpg',
-    '/assets/book-cover-6.jpg',
-  ].map((_, i) => `https://ia800703.us.archive.org/0/items/atomic_202504/atomic.jpg=${i+Date.now()}`);
+    'https://images.pexels.com/photos/1907785/pexels-photo-1907785.jpeg',
+    'https://images.pexels.com/photos/3747139/pexels-photo-3747139.jpeg',
+    'https://images.pexels.com/photos/1148399/pexels-photo-1148399.jpeg',
+    'https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg',
+    'https://images.pexels.com/photos/1765033/pexels-photo-1765033.jpeg',
+    'https://images.pexels.com/photos/1738498/pexels-photo-1738498.jpeg',
+  ];
 
   return (
     <div className="overflow-hidden">
@@ -617,157 +617,6 @@ export function AboutPage() {
               >
                 Contact Sales
               </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* App Features Showcase */}
-      <section className="py-20 md:py-32 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1 fade-in-element opacity-0 transition-all duration-1000">
-              <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                Personalized Experience
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Tailored to Your Learning Style</h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Our platform adapts to how you learn best. Whether you prefer reading, listening, or interactive content, Inlits provides a personalized experience that evolves with your interests and goals.
-              </p>
-              
-              <div className="space-y-4">
-                {[
-                  "Smart content recommendations based on your interests",
-                  "Customizable reading interface with font and theme options",
-                  "Progress tracking across all your learning goals",
-                  "Seamless synchronization across all your devices"
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="mt-1 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-3 h-3 text-primary" />
-                    </div>
-                    <p>{feature}</p>
-                  </div>
-                ))}
-              </div>
-              
-              <Link 
-                to="/library" 
-                className="inline-flex items-center gap-2 mt-8 text-primary hover:underline font-medium"
-              >
-                Explore personalization features
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-            
-            <div className="order-1 lg:order-2 relative fade-in-element opacity-0 transition-all duration-1000">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-3"></div>
-              <img 
-                src="https://images.pexels.com/photos/5077047/pexels-photo-5077047.jpeg" 
-                alt="Personalized Learning" 
-                className="relative rounded-2xl shadow-lg -rotate-3 hover:rotate-0 transition-transform duration-500"
-              />
-              <div className="absolute -bottom-6 -right-6 bg-card border shadow-lg rounded-lg p-4 max-w-xs">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-primary" />
-                  </div>
-                  <p className="font-medium">Learning Streak: 28 Days</p>
-                </div>
-                <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full" style={{ width: '75%' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Community Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 to-primary/5">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="relative fade-in-element opacity-0 transition-all duration-1000">
-              <div className="grid grid-cols-2 gap-4">
-                <img 
-                  src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg" 
-                  alt="Community Discussion" 
-                  className="rounded-lg shadow-md transform hover:scale-105 transition-transform"
-                />
-                <img 
-                  src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg" 
-                  alt="Book Club" 
-                  className="rounded-lg shadow-md transform hover:scale-105 transition-transform mt-8"
-                />
-                <img 
-                  src="https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg" 
-                  alt="Learning Together" 
-                  className="rounded-lg shadow-md transform hover:scale-105 transition-transform"
-                />
-                <img 
-                  src="https://images.pexels.com/photos/3182781/pexels-photo-3182781.jpeg" 
-                  alt="Group Study" 
-                  className="rounded-lg shadow-md transform hover:scale-105 transition-transform mt-8"
-                />
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-card border shadow-lg rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <img 
-                        key={i}
-                        src={`https://images.pexels.com/photos/22${i}453/pexels-photo-22${i}453.jpeg?auto=compress&cs=tinysrgb&w=50`} 
-                        alt="Community Member" 
-                        className="w-8 h-8 rounded-full border-2 border-background object-cover"
-                      />
-                    ))}
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs border-2 border-background">
-                      +42
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium">Active in this community</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="fade-in-element opacity-0 transition-all duration-1000">
-              <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                Community-Driven
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Learn Together, Grow Together</h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Learning is better with others. Join vibrant communities of readers and learners who share your interests, participate in discussions, and collaborate on learning projects.
-              </p>
-              
-              <div className="space-y-6">
-                <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3">Book Clubs</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Join virtual book clubs focused on specific topics or genres. Discuss chapters, share insights, and deepen your understanding through collective wisdom.
-                  </p>
-                  <Link 
-                    to="/community" 
-                    className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-                  >
-                    Browse book clubs
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-                
-                <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3">Learning Challenges</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Participate in structured learning challenges with clear goals and timelines. Stay motivated and accountable with fellow learners.
-                  </p>
-                  <Link 
-                    to="/community" 
-                    className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-                  >
-                    Explore challenges
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
             </div>
           </div>
         </div>
