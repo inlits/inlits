@@ -437,7 +437,7 @@ export function AboutPage() {
                 delay: 0.1
               },
               {
-                name: "inlits member",
+                name: "inlits Member",
                 price: "$5.99",
                 period: "per month",
                 description: "For serious learners",
