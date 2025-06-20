@@ -66,17 +66,14 @@ export function AboutPage() {
   ];
 
   return (
-    <div className="">
+    <div className="overflow-hidden">
       {/* Hero Section */}
       <section 
         ref={heroRef} 
         className="relative py-20 md:py-32 opacity-0 transition-all duration-1000 translate-y-8 "
         style={{ animationDelay: '0.2s' }}
       >
-        <div className="absolute inset-0 overflow-hidden -z-10">
-          <div className="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl"></div>
-          <div className="absolute top-[60%] -left-[5%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-3xl"></div>
-        </div>
+        
 
         <div className="container mx-auto px-0 text-center">
           <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
