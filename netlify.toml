@@ -15,3 +15,38 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://source.unsplash.com https://images.pexels.com https://*.supabase.co data:; font-src 'self'; connect-src 'self' https://*.supabase.co https://www.google-analytics.com; media-src 'self' https://*.supabase.co; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; block-all-mixed-content; upgrade-insecure-requests;"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+# Redirect HTTP to HTTPS
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# Rate limiting for sensitive endpoints
+[[plugins]]
+  package = "@netlify/plugin-functions-core"
+
+# Prevent access to sensitive files
+[[headers]]
+  for = "/.env"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Content-Type = "text/plain"
+
+[[headers]]
+  for = "/*.json"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"

@@ -38,6 +38,39 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
+// Add Content Security Policy
+const meta = document.createElement('meta');
+meta.httpEquiv = 'Content-Security-Policy';
+meta.content = `
+  default-src 'self';
+  script-src 'self' https://www.googletagmanager.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' https://source.unsplash.com https://images.pexels.com https://*.supabase.co data:;
+  font-src 'self';
+  connect-src 'self' https://*.supabase.co https://www.google-analytics.com;
+  media-src 'self' https://*.supabase.co;
+  frame-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  block-all-mixed-content;
+  upgrade-insecure-requests;
+`.replace(/\s+/g, ' ').trim();
+document.head.appendChild(meta);
+
+// Add security headers
+const securityHeaders = [
+  { name: 'X-Content-Type-Options', value: 'nosniff' },
+  { name: 'X-Frame-Options', value: 'DENY' },
+  { name: 'X-XSS-Protection', value: '1; mode=block' },
+  { name: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { name: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' }
+];
+
+// These headers can't actually be set client-side, but we're showing what should be set server-side
+console.info('Security headers that should be set on the server:', securityHeaders);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

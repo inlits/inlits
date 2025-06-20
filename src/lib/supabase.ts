@@ -22,6 +22,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: { 'x-client-info': 'inlits' }
+  },
+  // Add security-related options
+  db: {
+    schema: 'public'
   }
 });
 
