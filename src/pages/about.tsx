@@ -365,8 +365,8 @@ export function AboutPage() {
               },
               {
                 quote: "The book clubs and discussion features have connected me with like-minded people from around the world. It's more than just a reading platform.",
-                author: "Aisha Patel",
-                role: "Bilal Siddique",
+                author: "Bilal Siddique",
+                role: "Book Enthusiast",
                 avatar: "https://images.unsplash.com/photo-1722354980566-ec247cb4f1a8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGFraXN0YW5pJTIwYm95c3xlbnwwfHwwfHx8MA%3D%3D",
                 delay: 0.5
               }
