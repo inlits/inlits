@@ -407,6 +407,7 @@ export function AboutPage() {
       </section>
 
       {/* Pricing Section */}
+      {/*
       <section 
         ref={pricingRef}
         className="py-20 md:py-32 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-all duration-1000 translate-y-8"
@@ -518,7 +519,7 @@ export function AboutPage() {
           </div>
         </div>
       </section>
-
+*/}
       {/* FAQ Section */}
       <section className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
