@@ -63,7 +63,7 @@ export function AboutPage() {
     '/assets/book-cover-4.jpg',
     '/assets/book-cover-5.jpg',
     '/assets/book-cover-6.jpg',
-  ].map((_, i) => `https://source.unsplash.com/random/400x600?book&sig=${i+Date.now()}`);
+  ].map((_, i) => `https://ia800703.us.archive.org/0/items/atomic_202504/atomic.jpg=${i+Date.now()}`);
 
   return (
     <div className="overflow-hidden">
