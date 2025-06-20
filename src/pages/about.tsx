@@ -57,7 +57,7 @@ export function AboutPage() {
 
   // Book covers for infinite carousel
   const bookCovers = [
-    '/assets/book-cover-1.jpg',
+    'https://dailytimes.com.pk/assets/uploads/2021/07/06/the-alchemist-a-graphic-novel.jpg',
     '/assets/book-cover-2.jpg',
     '/assets/book-cover-3.jpg',
     '/assets/book-cover-4.jpg',
