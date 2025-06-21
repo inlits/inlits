@@ -112,7 +112,7 @@ export function ReaderPage() {
               .from('comments')
               .select(`
                 *,
-                author:profiles!comments_user_id_fkey (
+                author:profiles (
                   name,
                   avatar_url
                 )
