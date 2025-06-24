@@ -143,12 +143,12 @@ export function PlayerPage() {
         });
         setPlayerVisible(true);
 
-        // Load reviews - Fix the foreign key relationship
+        // Load reviews
         const { data: commentsData } = await supabase
           .from('comments')
           .select(`
             *,
-            user:profiles!comments_user_id_fkey (
+            author:profiles (
               name,
               username,
               avatar_url
@@ -162,9 +162,9 @@ export function PlayerPage() {
           setReviews(commentsData.map(comment => ({
             id: comment.id,
             author: {
-              name: comment.user.name || comment.user.username,
-              username: comment.user.username,
-              avatar: comment.user.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${comment.id}`
+              name: comment.author.name || comment.author.username,
+              username: comment.author.username,
+              avatar: comment.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${comment.id}`
             },
             rating: comment.rating || 0,
             content: comment.content,
@@ -263,12 +263,12 @@ export function PlayerPage() {
 
       if (reviewError) throw reviewError;
 
-      // Reload reviews - Fix the foreign key relationship
+      // Reload reviews
       const { data: newReviews } = await supabase
         .from('comments')
         .select(`
           *,
-          user:profiles!comments_user_id_fkey (
+          author:profiles (
             name,
             username,
             avatar_url
@@ -282,9 +282,9 @@ export function PlayerPage() {
         setReviews(newReviews.map(review => ({
           id: review.id,
           author: {
-            name: review.user.name || review.user.username,
-            username: review.user.username,
-            avatar: review.user.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${review.user.id}`
+            name: review.author.name || review.author.username,
+            username: review.author.username,
+            avatar: review.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${review.author.id}`
           },
           rating: review.rating || 0,
           content: review.content,

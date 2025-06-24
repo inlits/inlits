@@ -98,22 +98,6 @@ export function AudioPlayer({
     }
   }, [currentAudio, currentChapter]);
 
-  // Handle playback control based on isPlaying state
-  React.useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || isLoading) return;
-
-    if (isPlaying) {
-      audio.play().catch(err => {
-        console.error('Error playing audio:', err);
-        setError('Failed to play audio');
-        setIsPlaying(false);
-      });
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, isLoading]);
-
   // Handle audio element events
   React.useEffect(() => {
     const audio = audioRef.current;
@@ -139,6 +123,12 @@ export function AudioPlayer({
 
     const handleCanPlay = () => {
       setIsLoading(false);
+      if (isPlaying) {
+        audio.play().catch(err => {
+          console.error('Error auto-playing:', err);
+          setIsPlaying(false);
+        });
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -164,22 +154,12 @@ export function AudioPlayer({
       setIsPlaying(false);
     };
 
-    const handlePlay = () => {
-      setIsPlaying(true);
-    };
-
-    const handlePause = () => {
-      setIsPlaying(false);
-    };
-
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
 
     return () => {
       audio.removeEventListener('loadstart', handleLoadStart);
@@ -188,25 +168,24 @@ export function AudioPlayer({
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
     };
-  }, [currentAudio, currentChapter, settings, setCurrentChapter]);
+  }, [currentAudio, currentChapter, isPlaying, settings, setCurrentChapter]);
 
   const togglePlay = async () => {
     if (!audioRef.current || isLoading) return;
 
-    // Check if audio source is available
-    const hasValidSource = currentAudio?.audioUrl || 
-      (currentAudio?.chapters && currentAudio.chapters.length > 0 && currentAudio.chapters[currentChapter]?.audio_url);
-
-    if (!hasValidSource) {
-      setError('No audio source available');
-      return;
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        await audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error toggling play:', error);
+      setError('Failed to play audio');
+      setIsPlaying(false);
     }
-
-    // Simply toggle the playing state - the useEffect will handle the actual play/pause
-    setIsPlaying(!isPlaying);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -326,6 +305,8 @@ export function AudioPlayer({
       <audio 
         ref={audioRef}
         preload="auto"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
       />
 
       {/* Progress Bar */}
