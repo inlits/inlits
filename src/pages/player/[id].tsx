@@ -148,7 +148,7 @@ export function PlayerPage() {
           .from('comments')
           .select(`
             *,
-            author:profiles (
+            author:profiles!comments_user_id_fkey (
               name,
               username,
               avatar_url
@@ -268,7 +268,7 @@ export function PlayerPage() {
         .from('comments')
         .select(`
           *,
-          author:profiles (
+          author:profiles!comments_user_id_fkey (
             name,
             username,
             avatar_url
