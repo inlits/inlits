@@ -20,7 +20,8 @@ import {
   Headphones,
   Mic,
   BookText,
-  AlertCircle
+  PenSquare,
+  FileText
 } from 'lucide-react';
 
 const sidebarItems = [
@@ -73,7 +74,7 @@ const createOptions = [
     id: 'article',
     label: 'Article',
     description: 'Write an article, blog post, or tutorial',
-    icon: FileText,
+    icon: PenSquare,
     path: '/content/new/article'
   },
   {
@@ -108,7 +109,11 @@ export function DashboardLayout() {
 
   // Show loading state while checking auth
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   // Redirect non-creators to home
@@ -120,14 +125,6 @@ export function DashboardLayout() {
   if (username !== profile.username) {
     return <Navigate to={`/dashboard/${profile.username}`} replace />;
   }
-
-  // Check if the current page is a coming soon page
-  const isComingSoonPage = 
-    location.pathname === `/dashboard/${username}` || // Overview page
-    location.pathname.includes('/earnings') ||
-    location.pathname.includes('/appointments') ||
-    location.pathname.includes('/analytics') ||
-    location.pathname.includes('/community');
 
   // Get current section for create dialog filtering
   const currentSection = location.pathname.split('/').pop();
@@ -224,20 +221,7 @@ export function DashboardLayout() {
         {/* Main Content */}
         <main className="flex-1 ml-64">
           <div className="container py-6">
-            {isComingSoonPage ? (
-              <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
-                <div className="max-w-md text-center space-y-4 p-6 rounded-lg">
-                  <AlertCircle className="w-12 h-12 text-primary mx-auto" />
-                  <h2 className="text-2xl font-semibold">Coming Soon!</h2>
-                  <p className="text-muted-foreground">
-                    We're working on exciting features to help you connect with your audience.
-                    Stay tuned for updates!
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <Outlet />
-            )}
+            <Outlet />
           </div>
         </main>
       </div>
