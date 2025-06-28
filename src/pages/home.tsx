@@ -16,7 +16,6 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [content, setContent] = useState<{
     audiobooks: ContentItem[];
     ebooks: ContentItem[];
@@ -179,12 +178,6 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
             .limit(50)
         ]);
 
-        // Check for errors in any of the queries
-        if (audiobooksData.error) throw audiobooksData.error;
-        if (booksData.error) throw booksData.error;
-        if (articlesData.error) throw articlesData.error;
-        if (podcastsData.error) throw podcastsData.error;
-
         console.log(`Loaded ${booksData.data?.length || 0} books and ${audiobooksData.data?.length || 0} audiobooks`);
 
         // Calculate read time for articles based on content length
@@ -211,110 +204,86 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           return userBookmarks.some(b => b.content_id === id && b.content_type === type);
         };
 
-        // Transform data to ContentItem format with proper error handling
-        const audiobooks = (audiobooksData.data || []).map(item => {
-          if (!item || !item.author) {
-            console.warn('Invalid audiobook data:', item);
-            return null;
-          }
-          return {
-            id: item.id,
-            type: 'audiobook' as const,
-            title: item.title || 'Untitled Audiobook',
-            thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
-            duration: '2 hours', // TODO: Calculate from chapters
-            views: 0, // Will be implemented with content_views
-            createdAt: item.created_at,
-            creator: {
-              id: item.author.id,
-              name: item.author.name || item.author.username || 'Unknown Author',
-              avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-              username: item.author.username,
-              followers: 0 // Will be implemented with followers
-            },
-            category: item.category || 'Audiobook',
-            featured: item.featured,
-            bookmarked: isBookmarked(item.id, 'audiobook')
-          };
-        }).filter(Boolean) as ContentItem[];
+        // Transform data to ContentItem format
+        const audiobooks = (audiobooksData.data || []).map(item => ({
+          id: item.id,
+          type: 'audiobook' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
+          duration: '2 hours', // TODO: Calculate from chapters
+          views: 0, // Will be implemented with content_views
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0 // Will be implemented with followers
+          },
+          category: item.category || 'Audiobook',
+          featured: item.featured,
+          bookmarked: isBookmarked(item.id, 'audiobook')
+        }));
 
-        const books = (booksData.data || []).map(item => {
-          if (!item || !item.author) {
-            console.warn('Invalid book data:', item);
-            return null;
-          }
-          return {
-            id: item.id,
-            type: 'ebook' as const,
-            title: item.title || 'Untitled Book',
-            thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
-            duration: '4 hours', // TODO: Calculate based on content length
-            views: 0,
-            createdAt: item.created_at,
-            creator: {
-              id: item.author.id,
-              name: item.author.name || item.author.username || 'Unknown Author',
-              avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-              username: item.author.username,
-              followers: 0
-            },
-            category: item.category || 'Book',
-            featured: item.featured,
-            bookmarked: isBookmarked(item.id, 'book')
-          };
-        }).filter(Boolean) as ContentItem[];
+        const books = (booksData.data || []).map(item => ({
+          id: item.id,
+          type: 'ebook' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
+          duration: '4 hours', // TODO: Calculate based on content length
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Book',
+          featured: item.featured,
+          bookmarked: isBookmarked(item.id, 'book')
+        }));
 
-        const articles = (articlesData.data || []).map(item => {
-          if (!item || !item.author) {
-            console.warn('Invalid article data:', item);
-            return null;
-          }
-          return {
-            id: item.id,
-            type: 'article' as const,
-            title: item.title || 'Untitled Article',
-            thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
-            duration: calculateReadTime(item.content),
-            views: 0,
-            createdAt: item.created_at,
-            creator: {
-              id: item.author.id,
-              name: item.author.name || item.author.username || 'Unknown Author',
-              avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-              username: item.author.username,
-              followers: 0
-            },
-            category: item.category || 'Article',
-            featured: item.featured,
-            bookmarked: isBookmarked(item.id, 'article')
-          };
-        }).filter(Boolean) as ContentItem[];
+        const articles = (articlesData.data || []).map(item => ({
+          id: item.id,
+          type: 'article' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
+          duration: calculateReadTime(item.content),
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Article',
+          featured: item.featured,
+          bookmarked: isBookmarked(item.id, 'article')
+        }));
 
-        const podcasts = (podcastsData.data || []).map(item => {
-          if (!item || !item.author) {
-            console.warn('Invalid podcast data:', item);
-            return null;
-          }
-          return {
-            id: item.id,
-            type: 'podcast' as const,
-            title: item.title || 'Untitled Podcast',
-            thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
-            duration: item.duration || '30 min',
-            views: 0,
-            createdAt: item.created_at,
-            creator: {
-              id: item.author.id,
-              name: item.author.name || item.author.username || 'Unknown Author',
-              avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-              username: item.author.username,
-              followers: 0
-            },
-            category: item.category || 'Podcast',
-            featured: item.featured,
-            bookmarked: isBookmarked(item.id, 'podcast')
-          };
-        }).filter(Boolean) as ContentItem[];
+        const podcasts = (podcastsData.data || []).map(item => ({
+          id: item.id,
+          type: 'podcast' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
+          duration: item.duration,
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Podcast',
+          featured: item.featured,
+          bookmarked: isBookmarked(item.id, 'podcast')
+        }));
 
         setContent({
           audiobooks,
@@ -322,29 +291,16 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           articles,
           podcasts
         });
-        
-        // Reset retry count on success
-        setRetryCount(0);
       } catch (err) {
         console.error('Error loading content:', err);
         setError(err instanceof Error ? err.message : 'Failed to load content');
-        
-        // Implement retry logic with exponential backoff
-        if (retryCount < 3) {
-          const backoffTime = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-          console.log(`Retrying in ${backoffTime}ms (attempt ${retryCount + 1})`);
-          setTimeout(() => {
-            setRetryCount(prev => prev + 1);
-            loadContent();
-          }, backoffTime);
-        }
       } finally {
         setLoading(false);
       }
     };
 
     loadContent();
-  }, [selectedCategory, user, retryCount]); // Add retryCount as dependency
+  }, [selectedCategory, user]); // Add user as dependency to refresh when user changes
 
   const handleAddToShelf = async (contentId: string, contentType: string) => {
     if (!user || !activeShelf) return;
@@ -431,11 +387,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
         <div className="space-y-2">
           <p className="text-destructive">{error}</p>
           <button
-            onClick={() => {
-              setRetryCount(0); // Reset retry count
-              setLoading(true); // Show loading state
-              window.location.reload(); // Force reload
-            }}
+            onClick={() => window.location.reload()}
             className="text-sm text-primary hover:underline"
           >
             Try again
