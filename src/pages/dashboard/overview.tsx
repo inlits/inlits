@@ -18,7 +18,11 @@ import {
   ArrowDown,
   Plus,
   Eye,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Headphones,
+  Mic,
+  FileText
 } from 'lucide-react';
 
 interface QuickAction {
