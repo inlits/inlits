@@ -50,10 +50,16 @@ export function ImageLoader({
     <div id={elementId} className="relative">
       {shouldLoad && (
         <img
-          src={currentSrc}
+          src={currentSrc || src}
           alt={alt}
           className={`${className} ${!isLoaded ? 'blur-sm' : 'blur-0'} transition-all duration-300`}
           loading={loadingStrategy}
+          onError={(e) => {
+            // If image fails to load and we have a fallback URL, try that
+            if (fallback && e.currentTarget.src !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') {
+              e.currentTarget.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            }
+          }}
           {...props}
         />
       )}

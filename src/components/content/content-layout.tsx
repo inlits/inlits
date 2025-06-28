@@ -96,6 +96,17 @@ export function ContentLayout({
       });
     };
 
+    // Check if there are any books to display
+    if (books.length === 0 || startIndex >= books.length) {
+      return null;
+    }
+
+    // Get the books for this section
+    const sectionBooks = books.slice(startIndex, startIndex + 7);
+    if (sectionBooks.length === 0) {
+      return null;
+    }
+
     return (
       <div className="space-y-2 mb-8">
         <div className="flex items-center justify-between">
@@ -119,7 +130,7 @@ export function ContentLayout({
           ref={rowRef}
           className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
         >
-          {books.slice(startIndex, startIndex + 7).map(item => (
+          {sectionBooks.map(item => (
             <div key={item.id} className="flex-shrink-0 w-[180px]">
               <ContentCard 
                 item={item} 

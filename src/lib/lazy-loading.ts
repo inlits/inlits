@@ -41,6 +41,15 @@ export function useLazyImage(src: string, lowQualityUrl?: string) {
     
     if (!src) return;
 
+    // Reset state when src changes
+    setIsLoaded(false);
+    setError(false);
+    
+    // If we have a low quality URL, use that immediately
+    if (lowQualityUrl && !currentSrc) {
+      setCurrentSrc(lowQualityUrl);
+    }
+
     const img = new Image();
     img.src = src;
 
@@ -56,6 +65,11 @@ export function useLazyImage(src: string, lowQualityUrl?: string) {
       if (isMounted.current) {
         setError(true);
         setIsLoaded(true);
+        
+        // If we have a low quality URL and the main image failed, keep using the low quality one
+        if (lowQualityUrl) {
+          setCurrentSrc(lowQualityUrl);
+        }
       }
     };
 
@@ -67,7 +81,7 @@ export function useLazyImage(src: string, lowQualityUrl?: string) {
       img.removeEventListener('load', handleLoad);
       img.removeEventListener('error', handleError);
     };
-  }, [src]);
+  }, [src, lowQualityUrl]);
 
   return { currentSrc, isLoaded, error };
 }
