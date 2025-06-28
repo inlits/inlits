@@ -11,13 +11,17 @@ interface Article {
   title: string;
   content: string;
   author: {
+    id: string;
     name: string;
     avatar: string;
+    username?: string;
   };
   publishedAt: string;
   readTime: string;
   claps: number;
   comments: Comment[];
+  category?: string;
+  cover_url?: string;
 }
 
 interface Chapter {
@@ -85,7 +89,9 @@ export function ReaderPage() {
             .select(`
               *,
               author:profiles!articles_author_id_fkey (
+                id,
                 name,
+                username,
                 avatar_url
               )
             `)
@@ -113,7 +119,9 @@ export function ReaderPage() {
               .select(`
                 *,
                 author:profiles!comments_user_id_fkey (
+                  id,
                   name,
+                  username,
                   avatar_url
                 )
               `)
@@ -131,22 +139,28 @@ export function ReaderPage() {
             title: article.title,
             content: article.content,
             author: {
-              name: article.author.name,
-              avatar: article.author.avatar_url
+              id: article.author.id,
+              name: article.author.name || article.author.username,
+              avatar: article.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${article.author.id}`,
+              username: article.author.username
             },
             publishedAt: article.created_at,
             readTime: `${readTime} min read`,
-            claps: viewsResponse.count || 0,
+            claps: article.view_count || 0,
             comments: (commentsResponse.data || []).map(comment => ({
               id: comment.id,
               author: {
-                name: comment.author.name,
-                avatar: comment.author.avatar_url
+                id: comment.author.id,
+                name: comment.author.name || comment.author.username,
+                avatar: comment.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${comment.author.id}`,
+                username: comment.author.username
               },
               content: comment.content,
               createdAt: comment.created_at,
               likes: 0 // TODO: Implement comment likes
-            }))
+            })),
+            category: article.category,
+            cover_url: article.cover_url
           });
 
         } else if (contentType === 'book') {
