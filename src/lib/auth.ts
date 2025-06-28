@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { supabase } from './supabase';
 import type { User, Provider } from '@supabase/supabase-js';
 import type { Profile, UserRole } from './types';
-import { logSecurityEvent, isStrongPassword } from './security';
 
 interface AuthState {
   user: User | null;
@@ -57,9 +56,20 @@ const useAuth = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string, username: string, role: UserRole) => {
     try {
       // Validate password
-      const passwordCheck = isStrongPassword(password);
-      if (!passwordCheck.isValid) {
-        throw new Error(passwordCheck.errors[0]);
+      if (password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+      if (!/[A-Z]/.test(password)) {
+        throw new Error('Password must contain at least one uppercase letter');
+      }
+      if (!/[a-z]/.test(password)) {
+        throw new Error('Password must contain at least one lowercase letter');
+      }
+      if (!/[0-9]/.test(password)) {
+        throw new Error('Password must contain at least one number');
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        throw new Error('Password must contain at least one special character');
       }
 
       // Validate username format
@@ -101,13 +111,6 @@ const useAuth = create<AuthState>((set, get) => ({
       
       if (!user) throw new Error('No user returned from sign up');
 
-      // Log successful signup
-      await logSecurityEvent('signup_success', {
-        email,
-        username,
-        role
-      }, user.id);
-
       // Wait a moment for the trigger to create the profile
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -141,14 +144,6 @@ const useAuth = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error('Sign up error:', error);
-      
-      // Log failed signup attempt
-      await logSecurityEvent('signup_failed', {
-        email,
-        username,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
       throw error;
     }
   },
@@ -165,12 +160,6 @@ const useAuth = create<AuthState>((set, get) => ({
 
       set({ user, loading: true });
 
-      // Log successful login
-      await logSecurityEvent('login_success', {
-        email,
-        method: 'password'
-      }, user.id);
-
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -181,7 +170,7 @@ const useAuth = create<AuthState>((set, get) => ({
         console.error('Profile error:', profileError);
         
         // If profile doesn't exist, try to create it
-        if (profileError.code === '42P01') {
+        if (profileError.code === 'PGRST116') {
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -224,13 +213,6 @@ const useAuth = create<AuthState>((set, get) => ({
       set({ user: null, profile: null, loading: false });
       localStorage.removeItem('sb-session');
       localStorage.removeItem('userProfile');
-      
-      // Log failed login attempt
-      await logSecurityEvent('login_failed', {
-        email,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
       throw error;
     }
   },
@@ -249,11 +231,6 @@ const useAuth = create<AuthState>((set, get) => ({
       });
       
       if (error) throw error;
-      
-      // Log OAuth login attempt
-      await logSecurityEvent('oauth_login_attempt', {
-        provider
-      });
     } catch (error) {
       console.error('Error signing in with provider:', error);
       throw error;
@@ -262,9 +239,6 @@ const useAuth = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     try {
-      const { user } = get();
-      const userId = user?.id;
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -272,11 +246,6 @@ const useAuth = create<AuthState>((set, get) => ({
       localStorage.removeItem('userProfile');
       
       set({ user: null, profile: null, loading: false });
-      
-      // Log successful logout
-      if (userId) {
-        await logSecurityEvent('logout', {}, userId);
-      }
       
       // Force a page reload to clear all state
       window.location.href = '/';
@@ -318,7 +287,7 @@ const useAuth = create<AuthState>((set, get) => ({
         console.error('Error fetching profile:', error);
         
         // If profile doesn't exist, try to create it
-        if (error.code === '42P01') {
+        if (error.code === 'PGRST116') {
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -428,12 +397,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     if (session?.user) {
       await useAuth.getState().setUser(session.user);
-      
-      // Log auth event
-      await logSecurityEvent('auth_state_change', {
-        event,
-        userId: session.user.id
-      }, session.user.id);
     }
   } else if (event === 'SIGNED_OUT') {
     useAuth.getState().setUser(null);

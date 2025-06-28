@@ -1,8 +1,7 @@
 import { supabase } from './supabase';
 import { withRetry } from './supabase';
-import { validateFileUpload, logSecurityEvent } from './security';
 
-export type StorageBucket = 'article-covers' | 'book-covers' | 'audiobook-covers' | 'books' | 'audiobooks' | 'profile-avatars' | 'profile-covers' | 'message-images';
+export type StorageBucket = 'article-covers' | 'book-covers' | 'audiobook-covers' | 'books' | 'audiobooks';
 
 interface UploadOptions {
   bucket: StorageBucket;
@@ -30,20 +29,17 @@ class StorageManager {
     }
 
     // Check file type based on bucket
-    if (bucket.includes('covers') || bucket === 'profile-avatars' || bucket === 'profile-covers' || bucket === 'message-images') {
-      const result = validateFileUpload(file, ['jpg', 'jpeg', 'png', 'webp'], 5 * 1024 * 1024);
-      if (!result.isValid) {
-        throw new Error(result.error);
+    if (bucket.includes('covers')) {
+      if (!this.allowedImageTypes.includes(file.type)) {
+        throw new Error(`Invalid file type. Allowed types: ${this.allowedImageTypes.join(', ')}`);
       }
     } else if (bucket === 'audiobooks') {
-      const result = validateFileUpload(file, ['mp3', 'wav', 'aac', 'm4a'], 100 * 1024 * 1024);
-      if (!result.isValid) {
-        throw new Error(result.error);
+      if (!this.allowedAudioTypes.includes(file.type)) {
+        throw new Error(`Invalid file type. Allowed types: ${this.allowedAudioTypes.join(', ')}`);
       }
     } else if (bucket === 'books') {
-      const result = validateFileUpload(file, ['pdf', 'epub', 'mobi'], 50 * 1024 * 1024);
-      if (!result.isValid) {
-        throw new Error(result.error);
+      if (!this.allowedBookTypes.includes(file.type)) {
+        throw new Error(`Invalid file type. Allowed types: ${this.allowedBookTypes.join(', ')}`);
       }
     }
   }
@@ -55,31 +51,13 @@ class StorageManager {
     return customPath || `${timestamp}-${randomString}.${extension}`;
   }
 
-  private sanitizeFileName(fileName: string): string {
-    // Remove potentially dangerous characters
-    return fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
-  }
-
   async upload({ bucket, file, path, onProgress }: UploadOptions): Promise<string> {
     try {
-      // Get user ID for security logging
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-
       // Validate file
       this.validateFile(file, bucket);
 
       // Generate file path if not provided
-      const sanitizedPath = path ? this.sanitizeFileName(path) : null;
-      const filePath = this.generateFilePath(file, sanitizedPath);
-
-      // Log upload attempt
-      await logSecurityEvent('file_upload_attempt', {
-        bucket,
-        fileType: file.type,
-        fileSize: file.size,
-        filePath
-      }, userId);
+      const filePath = this.generateFilePath(file, path);
 
       // Upload with retry mechanism
       const { data, error } = await withRetry(
@@ -129,28 +107,9 @@ class StorageManager {
         throw new Error('Uploaded file is not publicly accessible');
       }
 
-      // Log successful upload
-      await logSecurityEvent('file_upload_success', {
-        bucket,
-        fileType: file.type,
-        fileSize: file.size,
-        filePath: data.path,
-        publicUrl
-      }, userId);
-
       return publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
-      
-      // Log upload failure
-      const { data: { user } } = await supabase.auth.getUser();
-      await logSecurityEvent('file_upload_failed', {
-        bucket,
-        fileType: file.type,
-        fileSize: file.size,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }, user?.id);
-      
       throw error;
     }
   }
@@ -176,16 +135,6 @@ class StorageManager {
 
   async remove(bucket: StorageBucket, path: string): Promise<void> {
     try {
-      // Get user ID for security logging
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-
-      // Log removal attempt
-      await logSecurityEvent('file_removal_attempt', {
-        bucket,
-        filePath: path
-      }, userId);
-
       const { error } = await withRetry(
         () => supabase.storage
           .from(bucket)
@@ -194,23 +143,8 @@ class StorageManager {
       );
 
       if (error) throw error;
-
-      // Log successful removal
-      await logSecurityEvent('file_removal_success', {
-        bucket,
-        filePath: path
-      }, userId);
     } catch (error) {
       console.error('Remove error:', error);
-      
-      // Log removal failure
-      const { data: { user } } = await supabase.auth.getUser();
-      await logSecurityEvent('file_removal_failed', {
-        bucket,
-        filePath: path,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }, user?.id);
-      
       throw error;
     }
   }

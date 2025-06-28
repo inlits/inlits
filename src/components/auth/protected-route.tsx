@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
-import { logSecurityEvent } from '@/lib/security';
 import type { UserRole } from '@/lib/types';
 
 interface ProtectedRouteProps {
@@ -17,22 +16,6 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
-
-  // Log access attempts to protected routes
-  useEffect(() => {
-    if (!loading && !user) {
-      logSecurityEvent('unauthorized_access_attempt', {
-        path: location.pathname,
-        referrer: document.referrer
-      });
-    } else if (!loading && user && roles && (!profile || !roles.includes(profile.role))) {
-      logSecurityEvent('insufficient_permissions', {
-        path: location.pathname,
-        userRole: profile?.role,
-        requiredRoles: roles
-      }, user.id);
-    }
-  }, [loading, user, profile, roles, location.pathname]);
 
   // Show nothing while checking auth status
   if (loading) {
@@ -51,13 +34,6 @@ export function ProtectedRoute({
 
   // Check role-based access if roles are specified
   if (roles && (!profile || !roles.includes(profile.role))) {
-    // Log access denied
-    logSecurityEvent('access_denied', {
-      path: location.pathname,
-      userRole: profile?.role,
-      requiredRoles: roles
-    }, user.id);
-    
     return <Navigate to="/" replace />;
   }
 
