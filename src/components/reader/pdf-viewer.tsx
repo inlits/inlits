@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 
 // Set the worker source
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -29,16 +29,11 @@ export function PDFViewer({ fileUrl, className = '' }: PDFViewerProps) {
         
         console.log('Loading PDF from URL:', fileUrl);
         
-        // Load the PDF document with proper CORS handling
+        // Load the PDF document
         const loadingTask = pdfjsLib.getDocument({
           url: fileUrl,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/cmaps/',
-          cMapPacked: true,
-          withCredentials: true,
-          // Add these options to help with CORS issues
-          httpHeaders: {
-            'Access-Control-Allow-Origin': '*'
-          }
+          cMapPacked: true
         });
         
         loadingTask.onProgress = (progressData) => {
@@ -258,14 +253,14 @@ export function PDFViewer({ fileUrl, className = '' }: PDFViewerProps) {
                 onClick={handleZoomOut}
                 className="p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
               >
-                -
+                <Minus className="w-4 h-4" />
               </button>
               <span className="text-sm">{Math.round(scale * 100)}%</span>
               <button
                 onClick={handleZoomIn}
                 className="p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
               >
-                +
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>

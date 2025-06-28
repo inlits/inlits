@@ -24,6 +24,20 @@ interface Article {
   cover_url?: string;
 }
 
+interface Comment {
+  id: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+    username?: string;
+  };
+  content: string;
+  createdAt: string;
+  likes: number;
+  replies?: Comment[];
+}
+
 interface Chapter {
   id: string;
   title: string;

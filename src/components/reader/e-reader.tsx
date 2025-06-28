@@ -271,7 +271,7 @@ export function EReader({ book }: { book: BookProps }) {
     } else if (systemTheme === 'light' && settings.theme === 'dark') {
       setSettings((prev) => ({ ...prev, theme: 'light' }));
     }
-  }, [systemTheme]);
+  }, [systemTheme, settings.theme]);
 
   const addHighlight = (color: string) => {
     if (selectedText) {
