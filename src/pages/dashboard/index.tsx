@@ -20,8 +20,7 @@ import {
   Headphones,
   Mic,
   BookText,
-  PenSquare,
-  FileText
+  PenSquare
 } from 'lucide-react';
 
 const sidebarItems = [
