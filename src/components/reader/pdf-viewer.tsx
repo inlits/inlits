@@ -3,7 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { Loader2, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 
 // Import the worker directly from the package
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.js?url';
 
 // Set the worker source to the imported worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
