@@ -70,12 +70,9 @@ export function ReaderPage() {
     ? [id.split('-')[0], id.substring(id.indexOf('-') + 1)] 
     : [null, null];
 
-  // Record view - only for authenticated users
+  // Record view
   const recordView = async () => {
-    if (!contentType || !contentId || !user?.id) {
-      // Skip recording view for unauthenticated users
-      return;
-    }
+    if (!contentType || !contentId) return;
 
     try {
       await supabase
@@ -83,12 +80,11 @@ export function ReaderPage() {
         .insert({
           content_id: contentId,
           content_type: contentType,
-          viewer_id: user.id,
+          viewer_id: user?.id || null,
           viewed_at: new Date().toISOString()
         });
     } catch (error) {
       console.error('Error recording view:', error);
-      // Don't throw error - view recording is not critical
     }
   };
 
@@ -181,9 +177,6 @@ export function ReaderPage() {
             cover_url: article.cover_url
           });
 
-          // Record view after content is loaded
-          await recordView();
-
         } else if (contentType === 'book') {
           // Load book with chapters
           const { data: book, error: bookError } = await supabase
@@ -239,7 +232,7 @@ export function ReaderPage() {
             file_type: book.file_type
           });
 
-          // Record view after content is loaded
+          // Record view
           await recordView();
         }
       } catch (err) {
