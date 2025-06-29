@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Link, Outlet, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/components/theme-provider';
 import { 
@@ -103,6 +103,7 @@ export function DashboardLayout() {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
   const { username } = useParams();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 

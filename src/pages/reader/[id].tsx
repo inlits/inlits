@@ -24,6 +24,19 @@ interface Article {
   cover_url?: string;
 }
 
+interface Comment {
+  id: string;
+  author: {
+    name: string;
+    avatar: string;
+    username?: string;
+  };
+  content: string;
+  createdAt: string;
+  likes: number;
+  replies?: Comment[];
+}
+
 interface Chapter {
   id: string;
   title: string;
@@ -150,7 +163,6 @@ export function ReaderPage() {
             comments: (commentsResponse.data || []).map(comment => ({
               id: comment.id,
               author: {
-                id: comment.author.id,
                 name: comment.author.name || comment.author.username,
                 avatar: comment.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${comment.author.id}`,
                 username: comment.author.username
