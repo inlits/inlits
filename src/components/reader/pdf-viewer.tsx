@@ -238,7 +238,7 @@ export function PDFViewer({ fileUrl, className = '' }: PDFViewerProps) {
               <button
                 onClick={handlePrevPage}
                 disabled={currentPage <= 1}
-                className="px-3 py-1 rounded-md text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -248,7 +248,7 @@ export function PDFViewer({ fileUrl, className = '' }: PDFViewerProps) {
               <button
                 onClick={handleNextPage}
                 disabled={currentPage >= numPages}
-                className="px-3 py-1 rounded-md text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>

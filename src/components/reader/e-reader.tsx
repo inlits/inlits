@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   BookOpen,
   Settings,
@@ -96,41 +96,36 @@ export function EReader({ book }: { book: BookProps }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const chaptersRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Check if the book has a file
-  const isPdf = book.file_url && (book.file_type === 'application/pdf' || book.file_url.endsWith('.pdf'));
-  const isEpub = book.file_url && (book.file_type === 'application/epub+zip' || book.file_url.endsWith('.epub'));
-  const isMobi = book.file_url && (book.file_type === 'application/x-mobipocket-ebook' || book.file_url.endsWith('.mobi'));
-  const isHtml = book.file_url && (
-    book.file_type === 'text/html' ||
-    book.file_url.endsWith('.html') ||
-    book.file_url.endsWith('.htm')
-  );
+  const isPdf = book.file_url && book.file_type === 'application/pdf';
+  const isHtml =
+    book.file_url &&
+    (book.file_type === 'text/html' ||
+      book.file_url.endsWith('.html') ||
+      book.file_url.endsWith('.htm'));
 
   // Get chapters from book or create a single chapter from content
-  const chapters = useMemo(() => {
-    if (book.chapters && book.chapters.length > 0) {
-      return book.chapters;
-    } else if (book.content) {
-      return [
-        {
-          id: 'main',
-          title: 'Full Content',
-          content: book.content,
-        },
-      ];
-    }
-    return [];
-  }, [book.chapters, book.content]);
+  const chapters =
+    book.chapters && book.chapters.length > 0
+      ? book.chapters
+      : book.content
+      ? [
+          {
+            id: 'main',
+            title: 'Full Content',
+            content: book.content,
+          },
+        ]
+      : [];
 
   // Calculate total pages based on content length
   useEffect(() => {
-    if (chapters.length > 0 && !isPdf && !isHtml && !isEpub && !isMobi) {
+    if (chapters.length > 0 && !isPdf && !isHtml) {
       // Rough estimate: 2000 characters per page
       const currentChapterContent = chapters[currentChapter]?.content || '';
       const estimatedPages = Math.max(
@@ -139,7 +134,7 @@ export function EReader({ book }: { book: BookProps }) {
       );
       setTotalPages(estimatedPages);
     }
-  }, [chapters, currentChapter, isPdf, isHtml, isEpub, isMobi]);
+  }, [chapters, currentChapter, isPdf, isHtml]);
 
   // Load HTML content if needed
   useEffect(() => {
@@ -154,7 +149,6 @@ export function EReader({ book }: { book: BookProps }) {
           setHtmlContent(html);
         } catch (error) {
           console.error('Error loading HTML content:', error);
-          setLoadingError('Failed to load HTML content. Please try downloading the file instead.');
         }
       };
 
@@ -238,15 +232,6 @@ export function EReader({ book }: { book: BookProps }) {
     setIframeLoaded(true);
   };
 
-  // Sync reader theme with system theme
-  useEffect(() => {
-    if (systemTheme === 'dark' && settings.theme === 'light') {
-      setSettings((prev) => ({ ...prev, theme: 'dark' }));
-    } else if (systemTheme === 'light' && settings.theme === 'dark') {
-      setSettings((prev) => ({ ...prev, theme: 'light' }));
-    }
-  }, [systemTheme]);
-
   // Handle text selection
   useEffect(() => {
     const handleSelection = () => {
@@ -278,6 +263,15 @@ export function EReader({ book }: { book: BookProps }) {
       contentRef.current.style.textAlign = settings.textAlign;
     }
   }, [settings]);
+
+  // Sync reader theme with system theme
+  useEffect(() => {
+    if (systemTheme === 'dark' && settings.theme === 'light') {
+      setSettings((prev) => ({ ...prev, theme: 'dark' }));
+    } else if (systemTheme === 'light' && settings.theme === 'dark') {
+      setSettings((prev) => ({ ...prev, theme: 'light' }));
+    }
+  }, [systemTheme]);
 
   const addHighlight = (color: string) => {
     if (selectedText) {
@@ -377,7 +371,7 @@ export function EReader({ book }: { book: BookProps }) {
   };
 
   // Create HTML content with base styles
-  const createHtmlContent = useCallback(() => {
+  const createHtmlContent = () => {
     if (!htmlContent) return null;
 
     // Add base styles to the HTML content
@@ -432,14 +426,7 @@ export function EReader({ book }: { book: BookProps }) {
     }
 
     return processedHtml;
-  }, [htmlContent, settings]);
-
-  // Handle EPUB and MOBI formats
-  useEffect(() => {
-    if ((isEpub || isMobi) && book.file_url) {
-      setLoadingError(`This ${isEpub ? 'EPUB' : 'MOBI'} file needs to be downloaded and opened in a compatible reader application.`);
-    }
-  }, [isEpub, isMobi, book.file_url]);
+  };
 
   return (
     <div
@@ -929,26 +916,6 @@ export function EReader({ book }: { book: BookProps }) {
               />
             )}
           </div>
-        ) : isEpub || isMobi ? (
-          // Display message for EPUB/MOBI files
-          <div className="my-8 p-6 border rounded-lg text-center">
-            <h3 className="text-xl font-semibold mb-4">
-              {isEpub ? 'EPUB' : 'MOBI'} Format Detected
-            </h3>
-            <p className="mb-4">
-              This file format requires a dedicated e-reader application. Please download the file to read it in your preferred e-reader app.
-            </p>
-            <div className="flex justify-center gap-4">
-              <a
-                href={book.file_url}
-                download
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download {isEpub ? 'EPUB' : 'MOBI'} File</span>
-              </a>
-            </div>
-          </div>
         ) : (
           /* Render chapter content with proper HTML */
           <div
@@ -963,9 +930,7 @@ export function EReader({ book }: { book: BookProps }) {
           chapters[currentChapter]?.content.trim() === '') &&
           book.file_url &&
           !isPdf &&
-          !isHtml &&
-          !isEpub &&
-          !isMobi && (
+          !isHtml && (
             <div className="my-8 p-6 border rounded-lg text-center">
               <h3 className="text-xl font-semibold mb-4">Document Available</h3>
               <p className="mb-4">
@@ -993,26 +958,6 @@ export function EReader({ book }: { book: BookProps }) {
               </div>
             </div>
           )}
-
-        {/* Display error message if loading failed */}
-        {loadingError && (
-          <div className="my-8 p-6 border border-destructive/50 rounded-lg text-center">
-            <h3 className="text-xl font-semibold mb-4 text-destructive">Error Loading Content</h3>
-            <p className="mb-4">{loadingError}</p>
-            {book.file_url && (
-              <div className="flex justify-center gap-4">
-                <a
-                  href={book.file_url}
-                  download
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download File</span>
-                </a>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Highlight Menu */}
@@ -1073,10 +1018,6 @@ export function EReader({ book }: { book: BookProps }) {
             <span>PDF Document</span>
           ) : isHtml ? (
             <span>HTML Document</span>
-          ) : isEpub ? (
-            <span>EPUB Document</span>
-          ) : isMobi ? (
-            <span>MOBI Document</span>
           ) : (
             <span>
               Page {currentPage} of {totalPages}
@@ -1084,7 +1025,7 @@ export function EReader({ book }: { book: BookProps }) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {!isPdf && !isHtml && !isEpub && !isMobi && (
+          {!isPdf && !isHtml && (
             <>
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
