@@ -16,15 +16,6 @@ export function Footer() {
               Your platform for focused learning. Discover books, articles, podcasts, and videos
               in a distraction-free environment.
             </p>
-            <div className="mt-4 flex items-center">
-              <a href="https://bolt.new" target="_blank" rel="noopener noreferrer" className="inline-block">
-                <img 
-                  src="/black_circle_360x360.png" 
-                  alt="Powered by Bolt.new" 
-                  className="h-8 w-8 dark:invert"
-                />
-              </a>
-            </div>
           </div>
 
           <div>
