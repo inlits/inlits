@@ -66,20 +66,7 @@ export function Navbar() {
 
         {/* Right Section */}
         <div className="flex items-center gap-2">
-          {/* Bolt.new Icon */}
-          <a 
-            href="https://bolt.new" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center justify-center mr-2"
-            title="Powered by Bolt.new"
-          >
-            <img 
-              src="/black_circle_360x360.png" 
-              alt="Powered by Bolt.new" 
-              className="w-7 h-7 dark:invert"
-            />
-          </a>
+
 
           {/* Theme Toggle */}
           <button
