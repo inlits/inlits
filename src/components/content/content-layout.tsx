@@ -75,11 +75,13 @@ export function ContentLayout({
   const BookSection = useCallback(({ 
     books, 
     title, 
-    startIndex 
+    startIndex,
+    isSkeletonData = false
   }: { 
     books: ContentItem[], 
     title: string, 
-    startIndex: number 
+    startIndex: number,
+    isSkeletonData?: boolean
   }) => {
     const rowRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +129,7 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
+                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -136,7 +139,7 @@ export function ContentLayout({
   }, [activeShelf, onAddToShelf]);
 
   // Create sections for articles and podcasts
-  const ArticlesSection = useCallback(() => {
+  const ArticlesSection = useCallback(({ isSkeletonData = false }: { isSkeletonData?: boolean }) => {
     const rowRef = useRef<HTMLDivElement>(null);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -198,6 +201,7 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
+                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -206,7 +210,7 @@ export function ContentLayout({
     );
   }, [articles, activeShelf, onAddToShelf]);
 
-  const PodcastsSection = useCallback(() => {
+  const PodcastsSection = useCallback(({ isSkeletonData = false }: { isSkeletonData?: boolean }) => {
     const rowRef = useRef<HTMLDivElement>(null);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -268,6 +272,7 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
+                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -295,15 +300,14 @@ export function ContentLayout({
           books={featuredBooks} 
           title="Featured Books" 
           startIndex={0} 
-          isSkeletonData={isSkeletonData}
         />
       )}
 
       {/* Articles Section */}
-      <ArticlesSection isSkeletonData={isSkeletonData} />
+      <ArticlesSection />
 
       {/* Podcasts Section */}
-      <PodcastsSection isSkeletonData={isSkeletonData} />
+      <PodcastsSection />
 
       {/* More Books to Explore Sections */}
       {remainingBooks.length > 0 && (
@@ -311,7 +315,6 @@ export function ContentLayout({
           books={remainingBooks} 
           title="More Books to Explore" 
           startIndex={0} 
-          isSkeletonData={isSkeletonData}
         />
       )}
 
@@ -334,6 +337,7 @@ export function ContentLayout({
                       item={item} 
                       activeShelf={activeShelf}
                       onAddToShelf={onAddToShelf}
+                      isSkeletonData={isSkeletonData}
                     />
                   </div>
                 ))}
@@ -345,7 +349,7 @@ export function ContentLayout({
       })}
       
       {/* Infinite scroll trigger */}
-      {actualVisibleSections < totalSections && (
+      {actualVisibleSections < totalSections && !isSkeletonData && (
         <div 
           ref={loadMoreTriggerRef} 
           className="h-20 flex items-center justify-center"
