@@ -196,29 +196,29 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
               <SidebarItem
                 icon={BookMarked}
                 label="Book Clubs"
-                to={user ? '/community/book-clubs' : '/signin'}
-                active={isActive('/community/book-clubs')}
+                to={user ? '/community?tab=book-clubs' : '/signin'}
+                active={isActive('/community') && searchParams.get('tab') === 'book-clubs'}
                 collapsed={collapsed}
               />
               <SidebarItem
                 icon={MessageSquare}
                 label="Discussions"
-                to={user ? '/community/discussions' : '/signin'}
-                active={isActive('/community/discussions')}
+                to={user ? '/community?tab=discussions' : '/signin'}
+                active={isActive('/community') && (searchParams.get('tab') === 'discussions' || !searchParams.get('tab'))}
                 collapsed={collapsed}
               />
               <SidebarItem
                 icon={Users2}
                 label="Study Groups"
-                to={user ? '/community/study-groups' : '/signin'}
-                active={isActive('/community/study-groups')}
+                to={user ? '/community?tab=study-groups' : '/signin'}
+                active={isActive('/community') && searchParams.get('tab') === 'study-groups'}
                 collapsed={collapsed}
               />
               <SidebarItem
                 icon={Trophy}
                 label="Learning Challenges"
-                to={user ? '/community/challenges' : '/signin'}
-                active={isActive('/community/challenges')}
+                to={user ? '/community?tab=challenges' : '/signin'}
+                active={isActive('/community') && searchParams.get('tab') === 'challenges'}
                 collapsed={collapsed}
               />
             </div>

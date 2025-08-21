@@ -6,8 +6,17 @@ import { BookClubs } from './book-clubs';
 
 type Tab = 'discussions' | 'study-groups' | 'challenges' | 'book-clubs';
 
-export function CommunityTabs() {
-  const [activeTab, setActiveTab] = useState<Tab>('discussions');
+interface CommunityTabsProps {
+  defaultTab?: string;
+}
+
+export function CommunityTabs({ defaultTab = 'discussions' }: CommunityTabsProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(defaultTab as Tab);
+
+  // Update active tab when defaultTab changes
+  React.useEffect(() => {
+    setActiveTab(defaultTab as Tab);
+  }, [defaultTab]);
 
   const tabs = [
     { id: 'discussions', label: 'Discussions' },
@@ -16,6 +25,14 @@ export function CommunityTabs() {
     { id: 'challenges', label: 'Learning Challenges' },
   ] as const;
 
+  const handleTabChange = (tabId: Tab) => {
+    setActiveTab(tabId);
+    // Update URL without page reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    window.history.replaceState({}, '', url.toString());
+  };
+
   return (
     <div>
       <div className="border-b">
@@ -23,7 +40,7 @@ export function CommunityTabs() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
