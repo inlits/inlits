@@ -74,139 +74,49 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
   useEffect(() => {
     const loadContent = async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        // Load content in parallel with category filter
-        const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
-          // Load audiobooks - increased limit to 100
-          (() => {
-            let query = supabase
-            .from('audiobooks')
-            .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!audiobooks_author_id_fkey (
+              .from('podcast_episodes')
+              .select(`
                 id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published');
+                title,
+                description,
+                cover_url,
+                duration,
+                created_at,
+                featured,
+                category,
+                author:profiles!podcast_episodes_author_id_fkey (
+                  id,
+                  name,
+                  avatar_url,
+                  username
+                )
+              `)
+              .eq('status', 'published');
             
             if (selectedCategory !== 'all') {
               query = query.eq('category', selectedCategory);
             }
             
             return query
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(100);
-          })(),
-
-          // Load books - increased limit to 100
-          (() => {
-            let query = supabase
-            .from('books')
-            .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!books_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published');
-            
-            if (selectedCategory !== 'all') {
-              query = query.eq('category', selectedCategory);
-            }
-            
-            return query
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(100);
-          })(),
-
-          // Load articles - increased limit to 50
-          (() => {
-            let query = supabase
-            .from('articles')
-            .select(`
-              id,
-              title,
-              excerpt,
-              content,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!articles_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published');
-            
-            if (selectedCategory !== 'all') {
-              query = query.eq('category', selectedCategory);
-            }
-            
-            return query
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(50);
-          })(),
-
-          // Load podcasts - increased limit to 50
-          (() => {
-            let query = supabase
-            .from('podcast_episodes')
-            .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              duration,
-              created_at,
-              featured,
-              category,
-              author:profiles!podcast_episodes_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published');
-            
-            if (selectedCategory !== 'all') {
-              query = query.eq('category', selectedCategory);
-            }
-            
-            return query
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(50);
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(50);
           })()
         ]);
 
-        console.log(`Loaded ${booksData.data?.length || 0} books and ${audiobooksData.data?.length || 0} audiobooks`);
+        // Check for errors
+        if (audiobooksData.error) throw audiobooksData.error;
+        if (booksData.error) throw booksData.error;
+        if (articlesData.error) throw articlesData.error;
+        if (podcastsData.error) throw podcastsData.error;
+
+        console.log(`Loaded content:`, {
+          audiobooks: audiobooksData.data?.length || 0,
+          books: booksData.data?.length || 0,
+          articles: articlesData.data?.length || 0,
+          podcasts: podcastsData.data?.length || 0,
+          category: selectedCategory
+        });
 
         // Calculate read time for articles based on content length
         const calculateReadTime = (content: string): string => {
@@ -250,6 +160,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           },
           category: item.category || 'Audiobook',
           featured: item.featured,
+          rating: 4.5,
           bookmarked: isBookmarked(item.id, 'audiobook')
         }));
 
@@ -270,6 +181,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           },
           category: item.category || 'Book',
           featured: item.featured,
+          rating: 4.5,
           bookmarked: isBookmarked(item.id, 'book')
         }));
 
@@ -290,6 +202,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           },
           category: item.category || 'Article',
           featured: item.featured,
+          rating: 4.5,
           bookmarked: isBookmarked(item.id, 'article')
         }));
 
@@ -310,6 +223,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           },
           category: item.category || 'Podcast',
           featured: item.featured,
+          rating: 4.5,
           bookmarked: isBookmarked(item.id, 'podcast')
         }));
 
@@ -328,7 +242,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     };
 
     loadContent();
-  }, [selectedCategory, user]); // Add user as dependency to refresh when user changes
+  }, [selectedCategory, user]);
 
   const handleAddToShelf = async (contentId: string, contentType: string) => {
     if (!user || !activeShelf) return;
