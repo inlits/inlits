@@ -74,6 +74,96 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
   useEffect(() => {
     const loadContent = async () => {
       try {
+        const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
+          (async () => {
+            let query = supabase
+              .from('audiobooks')
+              .select(`
+                id,
+                title,
+                description,
+                cover_url,
+                created_at,
+                featured,
+                category,
+                author:profiles!audiobooks_author_id_fkey (
+                  id,
+                  name,
+                  avatar_url,
+                  username
+                )
+              `)
+              .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(50);
+          })(),
+          (async () => {
+            let query = supabase
+              .from('books')
+              .select(`
+                id,
+                title,
+                description,
+                cover_url,
+                created_at,
+                featured,
+                category,
+                author:profiles!books_author_id_fkey (
+                  id,
+                  name,
+                  avatar_url,
+                  username
+                )
+              `)
+              .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(50);
+          })(),
+          (async () => {
+            let query = supabase
+              .from('articles')
+              .select(`
+                id,
+                title,
+                content,
+                cover_url,
+                created_at,
+                featured,
+                category,
+                author:profiles!articles_author_id_fkey (
+                  id,
+                  name,
+                  avatar_url,
+                  username
+                )
+              `)
+              .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(50);
+          })(),
+          (async () => {
+            let query = supabase
               .from('podcast_episodes')
               .select(`
                 id,
