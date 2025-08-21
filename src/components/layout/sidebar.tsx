@@ -3,12 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import {
   Home,
-  Zap,
-  Users,
   User,
   Library,
   History,
-  Users2,
   CreditCard,
   ChevronLeft,
   ChevronRight,
@@ -22,6 +19,10 @@ import {
   Mic,
   BookMarked,
   Sparkles,
+  Target,
+  Users2,
+  MessageSquare,
+  Trophy,
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -91,6 +92,7 @@ interface SidebarProps {
 
 export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const isMobile = window.innerWidth < 768;
@@ -136,54 +138,17 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
                 collapsed={collapsed}
               />
               <SidebarItem
-                icon={Zap}
-                label="Quick Bites"
-                to="/quick-bites"
-                active={isActive('/quick-bites')}
+                icon={Target}
+                label="Learning Goals"
+                to={user ? '/library?tab=goals' : '/signin'}
+                active={isActive('/library') && searchParams.get('tab') === 'goals'}
                 collapsed={collapsed}
               />
-              <SidebarItem
-                icon={Users}
-                label="Followed Creators"
-                to={user ? '/followed' : '/signin'}
-                active={isActive('/followed')}
-                collapsed={collapsed}
-              />
-              <SidebarItem
-                icon={Search}
-                label="Find People"
-                to="/profile/search"
-                active={isActive('/profile/search')}
-                collapsed={collapsed}
-              />
-            </div>
-
-            {/* User Section */}
-            <div className="space-y-0.5">
-              {!collapsed && (
-                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3">
-                  You
-                </p>
-              )}
               <SidebarItem
                 icon={Library}
                 label="My Library"
                 to={user ? '/library' : '/signin'}
                 active={isActive('/library')}
-                collapsed={collapsed}
-              />
-              <SidebarItem
-                icon={Users2}
-                label="Community"
-                to={user ? '/community' : '/signin'}
-                active={isActive('/community')}
-                collapsed={collapsed}
-              />
-              <SidebarItem
-                icon={History}
-                label="History"
-                to={user ? '/history' : '/signin'}
-                active={isActive('/history')}
                 collapsed={collapsed}
               />
               <SidebarItem
@@ -212,6 +177,50 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
                   />
                 )
               )}
+              <SidebarItem
+                icon={History}
+                label="History"
+                to={user ? '/history' : '/signin'}
+                active={isActive('/history')}
+                collapsed={collapsed}
+              />
+            </div>
+
+            {/* Community Section */}
+            <div className="space-y-0.5">
+              {!collapsed && (
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3">
+                  Community
+                </p>
+              )}
+              <SidebarItem
+                icon={BookMarked}
+                label="Book Clubs"
+                to={user ? '/community/book-clubs' : '/signin'}
+                active={isActive('/community/book-clubs')}
+                collapsed={collapsed}
+              />
+              <SidebarItem
+                icon={MessageSquare}
+                label="Discussions"
+                to={user ? '/community/discussions' : '/signin'}
+                active={isActive('/community/discussions')}
+                collapsed={collapsed}
+              />
+              <SidebarItem
+                icon={Users2}
+                label="Study Groups"
+                to={user ? '/community/study-groups' : '/signin'}
+                active={isActive('/community/study-groups')}
+                collapsed={collapsed}
+              />
+              <SidebarItem
+                icon={Trophy}
+                label="Learning Challenges"
+                to={user ? '/community/challenges' : '/signin'}
+                active={isActive('/community/challenges')}
+                collapsed={collapsed}
+              />
             </div>
 
             {/* Explore Section */}
