@@ -80,7 +80,8 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
         // Load content in parallel with category filter
         const [audiobooksData, booksData, articlesData, podcastsData] = await Promise.all([
           // Load audiobooks - increased limit to 100
-          supabase
+          (() => {
+            let query = supabase
             .from('audiobooks')
             .select(`
               id,
@@ -97,19 +98,21 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
                 username
               )
             `)
-            .eq('status', 'published')
-            .then(query => {
-              if (selectedCategory !== 'all') {
-                return query.eq('category', selectedCategory);
-              }
-              return query;
-            })
+            .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(100),
+            .limit(100);
+          })(),
 
           // Load books - increased limit to 100
-          supabase
+          (() => {
+            let query = supabase
             .from('books')
             .select(`
               id,
@@ -126,19 +129,21 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
                 username
               )
             `)
-            .eq('status', 'published')
-            .then(query => {
-              if (selectedCategory !== 'all') {
-                return query.eq('category', selectedCategory);
-              }
-              return query;
-            })
+            .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(100),
+            .limit(100);
+          })(),
 
           // Load articles - increased limit to 50
-          supabase
+          (() => {
+            let query = supabase
             .from('articles')
             .select(`
               id,
@@ -156,19 +161,21 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
                 username
               )
             `)
-            .eq('status', 'published')
-            .then(query => {
-              if (selectedCategory !== 'all') {
-                return query.eq('category', selectedCategory);
-              }
-              return query;
-            })
+            .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(50),
+            .limit(50);
+          })(),
 
           // Load podcasts - increased limit to 50
-          supabase
+          (() => {
+            let query = supabase
             .from('podcast_episodes')
             .select(`
               id,
@@ -186,16 +193,17 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
                 username
               )
             `)
-            .eq('status', 'published')
-            .then(query => {
-              if (selectedCategory !== 'all') {
-                return query.eq('category', selectedCategory);
-              }
-              return query;
-            })
+            .eq('status', 'published');
+            
+            if (selectedCategory !== 'all') {
+              query = query.eq('category', selectedCategory);
+            }
+            
+            return query
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
-            .limit(50)
+            .limit(50);
+          })()
         ]);
 
         console.log(`Loaded ${booksData.data?.length || 0} books and ${audiobooksData.data?.length || 0} audiobooks`);
