@@ -6,6 +6,7 @@ import { ChevronLeft, Image as ImageIcon, Plus, X, ChevronDown } from 'lucide-re
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TipTapEditor } from '@/components/editor/tiptap-editor';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 interface Series {
   id: string;
@@ -26,22 +27,6 @@ interface LocationState {
     category?: string;
   };
 }
-
-// Categories for articles
-const CATEGORIES = [
-  'Business & Finance',
-  'Self Development',
-  'Science & Technology',
-  'History & Politics',
-  'Philosophy',
-  'Psychology',
-  'Fiction',
-  'Biography',
-  'Health & Wellness',
-  'Arts & Culture',
-  'Religion & Spirituality',
-  'Education'
-];
 
 export function NewArticlePage() {
   const navigate = useNavigate();

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'wav', 'm4a', 'aac'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -69,6 +70,7 @@ export function NewPodcastPage() {
       const title = formData.get('title') as string;
       const description = formData.get('description') as string;
       const duration = formData.get('duration') as string;
+      const category = formData.get('category') as string;
       const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
 
       // Upload cover image if exists
@@ -112,6 +114,7 @@ export function NewPodcastPage() {
         .insert({
           title,
           description,
+          category,
           cover_url: coverUrl,
           audio_url: audioUrl,
           duration,
@@ -248,6 +251,24 @@ export function NewPodcastPage() {
             name="tags"
             placeholder="Enter tags separated by commas"
           />
+        </div>
+
+        {/* Category */}
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <select
+            id="category"
+            name="category"
+            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            required
+          >
+            <option value="">Select Category</option>
+            {CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Actions */}

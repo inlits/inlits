@@ -57,6 +57,22 @@ export function Navbar() {
             <BookOpen className="h-6 w-6 text-primary" />
             <span className="hidden text-xl font-bold md:inline">Inlits</span>
           </Link>
+
+          {/* Bolt.new Badge */}
+          <a
+            href="https://bolt.new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black hover:opacity-80 transition-opacity text-xs font-medium"
+            title="Powered by Bolt.new"
+          >
+            <img
+              src="/black_circle_360x360.png"
+              alt="Bolt.new"
+              className="w-4 h-4 invert dark:invert-0"
+            />
+            <span className="hidden sm:inline">Made in Bolt</span>
+          </a>
         </div>
 
         {/* Center Section - Search */}

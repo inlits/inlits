@@ -98,7 +98,12 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               )
             `)
             .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+            .then(query => {
+              if (selectedCategory !== 'all') {
+                return query.eq('category', selectedCategory);
+              }
+              return query;
+            })
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
             .limit(100),
@@ -122,7 +127,12 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               )
             `)
             .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+            .then(query => {
+              if (selectedCategory !== 'all') {
+                return query.eq('category', selectedCategory);
+              }
+              return query;
+            })
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
             .limit(100),
@@ -147,7 +157,12 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               )
             `)
             .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+            .then(query => {
+              if (selectedCategory !== 'all') {
+                return query.eq('category', selectedCategory);
+              }
+              return query;
+            })
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
             .limit(50),
@@ -172,7 +187,12 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               )
             `)
             .eq('status', 'published')
-            .eq(selectedCategory !== 'all' ? 'category' : 'status', selectedCategory !== 'all' ? selectedCategory : 'published')
+            .then(query => {
+              if (selectedCategory !== 'all') {
+                return query.eq('category', selectedCategory);
+              }
+              return query;
+            })
             .order('featured', { ascending: false })
             .order('created_at', { ascending: false })
             .limit(50)

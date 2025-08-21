@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, Image as ImageIcon, Upload, Plus, Trash2, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 interface Chapter {
   id: string;
@@ -43,22 +44,6 @@ interface LocationState {
 
 const SUPPORTED_AUDIO_FORMATS = ['mp3', 'wav', 'm4a', 'aac'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB per file
-
-// Categories for audiobooks
-const CATEGORIES = [
-  'Business & Finance',
-  'Self Development',
-  'Science & Technology',
-  'History & Politics',
-  'Philosophy',
-  'Psychology',
-  'Fiction',
-  'Biography',
-  'Health & Wellness',
-  'Arts & Culture',
-  'Religion & Spirituality',
-  'Education'
-];
 
 export function NewAudiobookPage() {
   const navigate = useNavigate();

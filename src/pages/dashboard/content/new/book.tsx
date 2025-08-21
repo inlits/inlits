@@ -5,25 +5,10 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, Image as ImageIcon, Upload, Plus, Trash2, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 const SUPPORTED_BOOK_FORMATS = ['pdf', 'epub', 'mobi', 'html', 'htm'];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-
-// Categories for books
-const CATEGORIES = [
-  'Business & Finance',
-  'Self Development',
-  'Science & Technology',
-  'History & Politics',
-  'Philosophy',
-  'Psychology',
-  'Fiction',
-  'Biography',
-  'Health & Wellness',
-  'Arts & Culture',
-  'Religion & Spirituality',
-  'Education'
-];
 
 interface Series {
   id: string;
