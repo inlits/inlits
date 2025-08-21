@@ -11,7 +11,30 @@ interface HomeProps {
   selectedCategory?: string;
 }
 
-// Cache for content data
+// Immediate skeleton data for instant display
+const createSkeletonContent = (count: number, type: string): ContentItem[] => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `skeleton-${type}-${i}`,
+    type: type as any,
+    title: 'Loading...',
+    thumbnail: `https://source.unsplash.com/random/800x600?${type}&sig=skeleton-${i}`,
+    duration: type === 'article' ? '5 min read' : '30 min',
+    views: 0,
+    createdAt: new Date().toISOString(),
+    creator: {
+      id: `skeleton-creator-${i}`,
+      name: 'Loading...',
+      avatar: `https://source.unsplash.com/random/100x100?face&sig=skeleton-${i}`,
+      followers: 0
+    },
+    category: 'Loading',
+    featured: false,
+    rating: 4.5,
+    bookmarked: false
+  }));
+};
+
+// Cache for content data with timestamps
 const contentCache = new Map<string, {
   data: {
     audiobooks: ContentItem[];
@@ -22,7 +45,7 @@ const contentCache = new Map<string, {
   timestamp: number;
 }>();
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for faster updates
 
 export function Home({ selectedCategory = 'all' }: HomeProps) {
   const [searchParams] = useSearchParams();
@@ -33,14 +56,15 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     articles: ContentItem[];
     podcasts: ContentItem[];
   }>({
-    audiobooks: [],
-    ebooks: [],
-    articles: [],
-    podcasts: []
+    // Start with skeleton content for instant display
+    audiobooks: createSkeletonContent(8, 'audiobook'),
+    ebooks: createSkeletonContent(8, 'ebook'),
+    articles: createSkeletonContent(6, 'article'),
+    podcasts: createSkeletonContent(6, 'podcast')
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Don't start with loading true
   const [error, setError] = useState<string | null>(null);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isSkeletonData, setIsSkeletonData] = useState(true);
 
   // Get shelf parameter from URL
   const shelfParam = searchParams.get('shelf');
@@ -83,9 +107,9 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     }
   }, [shelfParam]);
 
-  // Load all content once and cache it
+  // Load content progressively
   useEffect(() => {
-    const loadAllContent = async () => {
+    const loadContent = async () => {
       // Check cache first
       const cacheKey = 'all-content';
       const cached = contentCache.get(cacheKey);
@@ -93,8 +117,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         console.log('Using cached content');
         setAllContent(cached.data);
-        setLoading(false);
-        setInitialLoadComplete(true);
+        setIsSkeletonData(false);
         return;
       }
 
@@ -104,127 +127,140 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
 
         console.log('Loading fresh content from database...');
 
-        // Load all content types in parallel
-        const [audiobooksResult, booksResult, articlesResult, podcastsResult] = await Promise.all([
+        // Load content types in sequence for faster perceived loading
+        // Start with featured content first
+        const loadContentType = async (table: string, type: string) => {
+          try {
+            const { data, error } = await supabase
+              .from(table)
+              .select(`
+                id,
+                title,
+                description,
+                cover_url,
+                created_at,
+                featured,
+                category,
+                view_count,
+                ${table === 'articles' ? 'content, excerpt,' : ''}
+                ${table === 'podcast_episodes' ? 'duration,' : ''}
+                ${table === 'audiobooks' ? 'narrator,' : ''}
+                author:profiles!${table}_author_id_fkey (
+                  id,
+                  name,
+                  avatar_url,
+                  username
+                )
+              `)
+              .eq('status', 'published')
+              .order('featured', { ascending: false })
+              .order('created_at', { ascending: false })
+              .limit(20); // Limit initial load
+
+            if (error) throw error;
+
+            return (data || []).map(item => {
+              // Calculate read time for articles
+              const calculateReadTime = (content: string): string => {
+                const wordsPerMinute = 200;
+                const words = content.trim().split(/\s+/).length;
+                const minutes = Math.ceil(words / wordsPerMinute);
+                return `${minutes} min read`;
+              };
+
+              return {
+                id: item.id,
+                type: type as any,
+                title: item.title,
+                thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?${type}&sig=${item.id}`,
+                duration: item.duration || (type === 'article' && item.content ? calculateReadTime(item.content) : '30 min'),
+                views: item.view_count || 0,
+                createdAt: item.created_at,
+                creator: {
+                  id: item.author.id,
+                  name: item.author.name || item.author.username,
+                  avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+                  username: item.author.username,
+                  followers: 0
+                },
+                category: item.category || type,
+                featured: item.featured,
+                rating: 4.5,
+                bookmarked: false
+              };
+            });
+          } catch (error) {
+            console.error(`Error loading ${table}:`, error);
+            return [];
+          }
+        };
+
+        // Load featured content first for immediate display
+        const [featuredAudiobooks, featuredBooks] = await Promise.all([
           supabase
             .from('audiobooks')
             .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!audiobooks_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
+              id, title, description, cover_url, created_at, featured, category, view_count,
+              author:profiles!audiobooks_author_id_fkey (id, name, avatar_url, username)
             `)
             .eq('status', 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false }),
-
+            .eq('featured', true)
+            .order('created_at', { ascending: false })
+            .limit(8),
           supabase
             .from('books')
             .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!books_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
+              id, title, description, cover_url, created_at, featured, category, view_count,
+              author:profiles!books_author_id_fkey (id, name, avatar_url, username)
             `)
             .eq('status', 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false }),
-
-          supabase
-            .from('articles')
-            .select(`
-              id,
-              title,
-              excerpt,
-              content,
-              cover_url,
-              created_at,
-              featured,
-              category,
-              author:profiles!articles_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published')
-            .order('featured', { ascending: false })
-            .order('created_at', { ascending: false }),
-
-          supabase
-            .from('podcast_episodes')
-            .select(`
-              id,
-              title,
-              description,
-              cover_url,
-              duration,
-              created_at,
-              featured,
-              category,
-              author:profiles!podcast_episodes_author_id_fkey (
-                id,
-                name,
-                avatar_url,
-                username
-              )
-            `)
-            .eq('status', 'published')
-            .order('featured', { ascending: false })
+            .eq('featured', true)
             .order('created_at', { ascending: false })
+            .limit(8)
         ]);
 
-        // Check for errors
-        if (audiobooksResult.error) {
-          console.error('Audiobooks error:', audiobooksResult.error);
-          throw new Error(`Failed to load audiobooks: ${audiobooksResult.error.message}`);
-        }
-        if (booksResult.error) {
-          console.error('Books error:', booksResult.error);
-          throw new Error(`Failed to load books: ${booksResult.error.message}`);
-        }
-        if (articlesResult.error) {
-          console.error('Articles error:', articlesResult.error);
-          throw new Error(`Failed to load articles: ${articlesResult.error.message}`);
-        }
-        if (podcastsResult.error) {
-          console.error('Podcasts error:', podcastsResult.error);
-          throw new Error(`Failed to load podcasts: ${podcastsResult.error.message}`);
-        }
-
-        console.log('Raw data loaded:', {
-          audiobooks: audiobooksResult.data?.length || 0,
-          books: booksResult.data?.length || 0,
-          articles: articlesResult.data?.length || 0,
-          podcasts: podcastsResult.data?.length || 0
-        });
-
-        // Calculate read time for articles
-        const calculateReadTime = (content: string): string => {
-          const wordsPerMinute = 200;
-          const words = content.trim().split(/\s+/).length;
-          const minutes = Math.ceil(words / wordsPerMinute);
-          return `${minutes} min read`;
+        // Process featured content immediately
+        const processContent = (data: any[], type: string) => {
+          return (data || []).map(item => ({
+            id: item.id,
+            type: type as any,
+            title: item.title,
+            thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?${type}&sig=${item.id}`,
+            duration: type === 'article' ? '5 min read' : '30 min',
+            views: item.view_count || 0,
+            createdAt: item.created_at,
+            creator: {
+              id: item.author.id,
+              name: item.author.name || item.author.username,
+              avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+              username: item.author.username,
+              followers: 0
+            },
+            category: item.category || type,
+            featured: item.featured,
+            rating: 4.5,
+            bookmarked: false
+          }));
         };
+
+        // Update with featured content first
+        const featuredContent = {
+          audiobooks: processContent(featuredAudiobooks.data, 'audiobook'),
+          ebooks: processContent(featuredBooks.data, 'ebook'),
+          articles: [],
+          podcasts: []
+        };
+
+        setAllContent(featuredContent);
+        setIsSkeletonData(false);
+
+        // Load remaining content in background
+        const [allAudiobooks, allBooks, allArticles, allPodcasts] = await Promise.all([
+          loadContentType('audiobooks', 'audiobook'),
+          loadContentType('books', 'ebook'),
+          loadContentType('articles', 'article'),
+          loadContentType('podcast_episodes', 'podcast')
+        ]);
 
         // Get user bookmarks if logged in
         let userBookmarks: { content_id: string; content_type: string }[] = [];
@@ -241,126 +277,46 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           return userBookmarks.some(b => b.content_id === id && b.content_type === type);
         };
 
-        // Transform data to ContentItem format
-        const audiobooks = (audiobooksResult.data || []).map(item => ({
-          id: item.id,
-          type: 'audiobook' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
-          duration: '2 hours',
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            username: item.author.username,
-            followers: 0
-          },
-          category: item.category || 'Audiobook',
-          featured: item.featured,
-          rating: 4.5,
-          bookmarked: isBookmarked(item.id, 'audiobook')
-        }));
+        // Update bookmarked status
+        const updateBookmarkStatus = (items: ContentItem[]) => {
+          return items.map(item => ({
+            ...item,
+            bookmarked: isBookmarked(item.id, item.type)
+          }));
+        };
 
-        const books = (booksResult.data || []).map(item => ({
-          id: item.id,
-          type: 'ebook' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
-          duration: '4 hours',
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            username: item.author.username,
-            followers: 0
-          },
-          category: item.category || 'Book',
-          featured: item.featured,
-          rating: 4.5,
-          bookmarked: isBookmarked(item.id, 'book')
-        }));
-
-        const articles = (articlesResult.data || []).map(item => ({
-          id: item.id,
-          type: 'article' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
-          duration: calculateReadTime(item.content),
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            username: item.author.username,
-            followers: 0
-          },
-          category: item.category || 'Article',
-          featured: item.featured,
-          rating: 4.5,
-          bookmarked: isBookmarked(item.id, 'article')
-        }));
-
-        const podcasts = (podcastsResult.data || []).map(item => ({
-          id: item.id,
-          type: 'podcast' as const,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
-          duration: item.duration,
-          views: 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            username: item.author.username,
-            followers: 0
-          },
-          category: item.category || 'Podcast',
-          featured: item.featured,
-          rating: 4.5,
-          bookmarked: isBookmarked(item.id, 'podcast')
-        }));
-
-        const contentData = {
-          audiobooks,
-          ebooks: books,
-          articles,
-          podcasts
+        const finalContent = {
+          audiobooks: updateBookmarkStatus(allAudiobooks),
+          ebooks: updateBookmarkStatus(allBooks),
+          articles: updateBookmarkStatus(allArticles),
+          podcasts: updateBookmarkStatus(allPodcasts)
         };
 
         // Cache the data
         contentCache.set(cacheKey, {
-          data: contentData,
+          data: finalContent,
           timestamp: Date.now()
         });
 
-        setAllContent(contentData);
-        console.log('Content loaded and cached:', {
-          audiobooks: audiobooks.length,
-          books: books.length,
-          articles: articles.length,
-          podcasts: podcasts.length
+        setAllContent(finalContent);
+        console.log('All content loaded:', {
+          audiobooks: allAudiobooks.length,
+          books: allBooks.length,
+          articles: allArticles.length,
+          podcasts: allPodcasts.length
         });
 
       } catch (err) {
         console.error('Error loading content:', err);
         setError(err instanceof Error ? err.message : 'Failed to load content');
+        // Keep skeleton data on error
       } finally {
         setLoading(false);
-        setInitialLoadComplete(true);
       }
     };
 
-    // Only load if we haven't loaded before or cache is expired
-    if (!initialLoadComplete) {
-      loadAllContent();
-    }
-  }, [user, initialLoadComplete]);
+    loadContent();
+  }, [user]);
 
   // Filter content based on selected category (client-side filtering for instant response)
   const filteredContent = useMemo(() => {
@@ -442,19 +398,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     }
   };
 
-  // Show loading only on initial load
-  if (loading && !initialLoadComplete) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading content...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (error && isSkeletonData) {
     return (
       <div className="min-h-[400px] flex items-center justify-center text-center">
         <div className="space-y-4">
@@ -466,8 +410,8 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           <button
             onClick={() => {
               contentCache.clear();
-              setInitialLoadComplete(false);
               setError(null);
+              window.location.reload();
             }}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
@@ -478,8 +422,8 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     );
   }
 
-  // Show "no content" message if category has no content
-  if (initialLoadComplete && !hasContent && selectedCategory !== 'all') {
+  // Show "no content" message only if we have real data and no content
+  if (!isSkeletonData && !hasContent && selectedCategory !== 'all') {
     return (
       <div className="min-h-[400px] flex items-center justify-center text-center">
         <div className="space-y-4 max-w-md">
@@ -533,7 +477,18 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           podcasts={filteredContent.podcasts}
           activeShelf={activeShelf}
           onAddToShelf={handleAddToShelf}
+          isSkeletonData={isSkeletonData}
         />
+        
+        {/* Loading indicator for background loading */}
+        {loading && !isSkeletonData && (
+          <div className="fixed bottom-4 right-4 bg-background/90 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-muted-foreground">Loading more content...</span>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

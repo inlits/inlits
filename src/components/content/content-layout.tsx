@@ -10,6 +10,7 @@ interface ContentLayoutProps {
   podcasts: ContentItem[];
   activeShelf?: string | null;
   onAddToShelf?: (contentId: string, contentType: string) => void;
+  isSkeletonData?: boolean;
 }
 
 export function ContentLayout({ 
@@ -18,7 +19,8 @@ export function ContentLayout({
   articles, 
   podcasts, 
   activeShelf,
-  onAddToShelf
+  onAddToShelf,
+  isSkeletonData = false
 }: ContentLayoutProps) {
   // Get featured content first
   const featuredBooks = [...audiobooks, ...ebooks]
@@ -293,14 +295,15 @@ export function ContentLayout({
           books={featuredBooks} 
           title="Featured Books" 
           startIndex={0} 
+          isSkeletonData={isSkeletonData}
         />
       )}
 
       {/* Articles Section */}
-      <ArticlesSection />
+      <ArticlesSection isSkeletonData={isSkeletonData} />
 
       {/* Podcasts Section */}
-      <PodcastsSection />
+      <PodcastsSection isSkeletonData={isSkeletonData} />
 
       {/* More Books to Explore Sections */}
       {remainingBooks.length > 0 && (
@@ -308,6 +311,7 @@ export function ContentLayout({
           books={remainingBooks} 
           title="More Books to Explore" 
           startIndex={0} 
+          isSkeletonData={isSkeletonData}
         />
       )}
 
