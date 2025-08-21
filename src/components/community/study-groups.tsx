@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { Users, BookOpen, Calendar, Plus } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Users, BookOpen, Calendar, Plus, Loader2, AlertCircle } from 'lucide-react';
 
 interface StudyGroup {
   id: string;
@@ -17,10 +18,6 @@ interface StudyGroup {
     avatar_url: string;
   };
   member_count: number;
-  topics: Array<{
-    id: string;
-    title: string;
-  }>;
 }
 
 export function StudyGroups() {
@@ -35,37 +32,9 @@ export function StudyGroups() {
         setLoading(true);
         setError(null);
 
-        // Since the get_study_groups function doesn't exist in the database,
-        // we'll use mock data instead
-        const mockGroups: StudyGroup[] = Array.from({ length: 6 }, (_, i) => ({
-          id: `group-${i}`,
-          name: [
-            'Machine Learning Study Group',
-            'Classic Literature Club',
-            'Web Development Mastermind',
-            'Psychology Research Group',
-            'Data Science Enthusiasts',
-            'Philosophy Discussion Circle'
-          ][i],
-          description: 'A group of learners studying together and sharing knowledge.',
-          category: ['Technology', 'Literature', 'Programming', 'Psychology', 'Data Science', 'Philosophy'][i],
-          max_members: 20 + i * 5,
-          is_private: i % 3 === 0,
-          created_at: new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          creator: {
-            id: `creator-${i}`,
-            username: `creator${i}`,
-            name: `Creator ${i}`,
-            avatar_url: `https://source.unsplash.com/random/100x100?face&sig=${Date.now()}-${i}`
-          },
-          member_count: Math.floor(Math.random() * 15) + 5,
-          topics: Array.from({ length: 3 }, (_, j) => ({
-            id: `topic-${i}-${j}`,
-            title: `Discussion Topic ${j + 1}`
-          }))
-        }));
-
-        setGroups(mockGroups);
+        // Since we don't have a study_groups table yet, we'll check if there are any
+        // For now, we'll return empty array to show the empty state
+        setGroups([]);
       } catch (err) {
         console.error('Error loading study groups:', err);
         setError(err instanceof Error ? err.message : 'Failed to load study groups');
@@ -90,9 +59,8 @@ export function StudyGroups() {
         )
       );
 
-      // In a real implementation, you would call a Supabase function here
-      // For now, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // TODO: Implement actual join functionality when study_groups table is created
+      console.log('Joining group:', groupId);
     } catch (error) {
       console.error('Error joining group:', error);
       // Revert the optimistic update on error
@@ -108,15 +76,19 @@ export function StudyGroups() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-card border rounded-lg p-6 animate-pulse">
-            <div className="space-y-4">
-              <div className="h-4 bg-muted rounded w-3/4" />
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded w-1/2" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-muted" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-muted rounded w-1/3" />
                 <div className="h-3 bg-muted rounded w-1/4" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-3 bg-muted rounded w-1/2" />
             </div>
           </div>
         ))}
@@ -127,13 +99,56 @@ export function StudyGroups() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive">{error}</p>
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Failed to load study groups</h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 text-primary hover:underline"
+          className="text-primary hover:underline"
         >
           Try again
         </button>
+      </div>
+    );
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">Study Groups</h2>
+            <p className="text-sm text-muted-foreground">
+              Join a group to learn together and stay accountable
+            </p>
+          </div>
+          <button 
+            onClick={() => {/* TODO: Implement create group modal */}}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Group
+          </button>
+        </div>
+
+        {/* Empty State */}
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No study groups yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Study groups will be available soon! We're working on features to help you learn together with others and stay motivated.
+          </p>
+          <button
+            onClick={() => {/* TODO: Implement create group modal */}}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create First Study Group
+          </button>
+        </div>
       </div>
     );
   }
@@ -184,7 +199,7 @@ export function StudyGroups() {
                         key={i}
                         src={`https://source.unsplash.com/random/100x100?face&sig=${group.id}-${i}`}
                         alt="Member"
-                        className="w-8 h-8 rounded-full border-2 border-background"
+                        className="w-8 h-8 rounded-full border-2 border-background object-cover"
                       />
                     ))}
                     {group.member_count > 3 && (
@@ -205,19 +220,17 @@ export function StudyGroups() {
                 </button>
               </div>
 
-              {/* Topics */}
-              {group.topics.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Recent Topics</h4>
-                  <div className="space-y-1">
-                    {group.topics.slice(0, 3).map((topic) => (
-                      <p key={topic.id} className="text-sm text-muted-foreground truncate">
-                        • {topic.title}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Creator Info */}
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <img
+                  src={group.creator.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${group.creator.id}`}
+                  alt={group.creator.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+                <span className="text-sm text-muted-foreground">
+                  Created by {group.creator.name || group.creator.username}
+                </span>
+              </div>
             </div>
           </div>
         ))}

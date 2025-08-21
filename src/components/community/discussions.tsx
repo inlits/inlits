@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { MessageSquare, ThumbsUp, Eye, MessageCircle, Plus } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Eye, MessageCircle, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
 
 interface Discussion {
@@ -16,11 +16,12 @@ interface Discussion {
     avatar_url: string;
   };
   category: string;
-  tags: string[];
-  likes: number;
-  views: number;
-  comment_count: number;
   created_at: string;
+  updated_at: string;
+  club_id: string;
+  club: {
+    name: string;
+  };
 }
 
 export function Discussions() {
@@ -32,35 +33,30 @@ export function Discussions() {
   useEffect(() => {
     const loadDiscussions = async () => {
       try {
-        // For now, let's use mock data since we're still setting up the database
-        const mockDiscussions: Discussion[] = Array.from({ length: 5 }, (_, i) => ({
-          id: `discussion-${i}`,
-          title: [
-            'Getting Started with Machine Learning',
-            'Best Practices for Web Development',
-            'Understanding Blockchain Technology',
-            'The Future of Artificial Intelligence',
-            'Learning Design Patterns in Software Engineering'
-          ][i],
-          content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...',
-          author: {
-            id: `author-${i}`,
-            name: `Author ${i + 1}`,
-            username: `author${i + 1}`,
-            avatar_url: `https://source.unsplash.com/random/100x100?face&sig=${Date.now()}-${i}`
-          },
-          category: ['Technology', 'Programming', 'Data Science', 'AI', 'Software Engineering'][i],
-          tags: ['learning', 'technology', 'education'],
-          likes: Math.floor(Math.random() * 100),
-          views: Math.floor(Math.random() * 1000),
-          comment_count: Math.floor(Math.random() * 50),
-          created_at: new Date(Date.now() - Math.random() * 10000000000).toISOString()
-        }));
+        setLoading(true);
+        setError(null);
 
-        setDiscussions(mockDiscussions);
+        const { data: discussionsData, error: discussionsError } = await supabase
+          .from('book_club_discussions')
+          .select(`
+            *,
+            author:profiles!book_club_discussions_creator_id_fkey (
+              id,
+              name,
+              username,
+              avatar_url
+            ),
+            club:book_clubs!book_club_discussions_club_id_fkey (
+              name
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (discussionsError) throw discussionsError;
+        setDiscussions(discussionsData || []);
       } catch (err) {
         console.error('Error loading discussions:', err);
-        setError('Failed to load discussions');
+        setError(err instanceof Error ? err.message : 'Failed to load discussions');
       } finally {
         setLoading(false);
       }
@@ -73,13 +69,9 @@ export function Discussions() {
     if (!user) return;
 
     try {
-      setDiscussions(prev =>
-        prev.map(discussion =>
-          discussion.id === id
-            ? { ...discussion, likes: discussion.likes + 1 }
-            : discussion
-        )
-      );
+      // In a real implementation, you would have a likes table
+      // For now, we'll just update the UI optimistically
+      console.log('Liked discussion:', id);
     } catch (err) {
       console.error('Error liking discussion:', err);
     }
@@ -88,14 +80,18 @@ export function Discussions() {
   if (loading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-card border rounded-lg p-6 animate-pulse">
-            <div className="space-y-4">
-              <div className="h-4 bg-muted rounded w-3/4" />
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded w-1/2" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-muted" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-muted rounded w-1/3" />
                 <div className="h-3 bg-muted rounded w-1/4" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-3 bg-muted rounded w-1/2" />
             </div>
           </div>
         ))}
@@ -106,13 +102,56 @@ export function Discussions() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive">{error}</p>
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Failed to load discussions</h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 text-primary hover:underline"
+          className="text-primary hover:underline"
         >
           Try again
         </button>
+      </div>
+    );
+  }
+
+  if (discussions.length === 0) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">Discussions</h2>
+            <p className="text-sm text-muted-foreground">
+              Join the conversation and share your knowledge
+            </p>
+          </div>
+          <button 
+            onClick={() => {/* TODO: Implement new discussion modal */}}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Discussion
+          </button>
+        </div>
+
+        {/* Empty State */}
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <MessageSquare className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No discussions yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Discussions will be available soon! We're working on exciting features to help you connect with fellow learners and share knowledge.
+          </p>
+          <button
+            onClick={() => {/* TODO: Implement create discussion modal */}}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Start First Discussion
+          </button>
+        </div>
       </div>
     );
   }
@@ -145,20 +184,20 @@ export function Discussions() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <img
-                    src={discussion.author.avatar_url}
+                    src={discussion.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${discussion.author.id}`}
                     alt={discussion.author.name}
-                    className="w-10 h-10 rounded-full"
+                    className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
                     <h3 className="font-medium hover:text-primary transition-colors">
                       {discussion.title}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{discussion.author.name}</span>
+                      <span>{discussion.author.name || discussion.author.username}</span>
                       <span>•</span>
                       <span>{formatTimeAgo(discussion.created_at)}</span>
                       <span>•</span>
-                      <span className="text-primary">{discussion.category}</span>
+                      <span className="text-primary">{discussion.club.name}</span>
                     </div>
                   </div>
                 </div>
@@ -168,15 +207,11 @@ export function Discussions() {
                     className="flex items-center gap-1 hover:text-primary transition-colors"
                   >
                     <ThumbsUp className="w-4 h-4" />
-                    <span>{discussion.likes}</span>
+                    <span>0</span>
                   </button>
                   <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>{discussion.views}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
                     <MessageCircle className="w-4 h-4" />
-                    <span>{discussion.comment_count}</span>
+                    <span>0</span>
                   </div>
                 </div>
               </div>
@@ -186,17 +221,14 @@ export function Discussions() {
                 {discussion.content}
               </p>
 
-              {/* Tags */}
-              <div className="flex items-center gap-2">
-                {discussion.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary"
-                  >
-                    #{tag}
+              {/* Chapter Info */}
+              {discussion.chapter && (
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
+                    {discussion.chapter}
                   </span>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

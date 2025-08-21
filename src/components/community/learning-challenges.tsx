@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { Trophy, Calendar, Users, ArrowRight, Plus } from 'lucide-react';
+import { Trophy, Calendar, Users, ArrowRight, Plus, Loader2, AlertCircle, Target } from 'lucide-react';
 
 interface Challenge {
   id: string;
@@ -38,39 +38,9 @@ export function LearningChallenges() {
         setLoading(true);
         setError(null);
 
-        // Since the get_learning_challenges function doesn't exist in the database,
-        // we'll use mock data instead
-        const mockChallenges: Challenge[] = Array.from({ length: 6 }, (_, i) => ({
-          id: `challenge-${i}`,
-          title: [
-            'Complete 5 Books in 30 Days',
-            'Master Machine Learning Fundamentals',
-            'Daily Writing Challenge',
-            'Learn a New Language',
-            'Philosophy Reading Group',
-            'Data Science Bootcamp'
-          ][i],
-          description: 'Join this challenge to improve your skills and earn rewards.',
-          category: ['Reading', 'Technology', 'Writing', 'Languages', 'Philosophy', 'Data Science'][i],
-          difficulty: ['beginner', 'intermediate', 'advanced'][i % 3],
-          start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          max_participants: 50 + i * 10,
-          rewards: {
-            points: 100 * (i + 1),
-            badge: ['Bookworm', 'Tech Guru', 'Wordsmith', 'Polyglot', 'Philosopher', 'Data Wizard'][i]
-          },
-          creator: {
-            id: `creator-${i}`,
-            username: `creator${i}`,
-            name: `Creator ${i}`,
-            avatar_url: `https://source.unsplash.com/random/100x100?face&sig=${Date.now()}-${i}`
-          },
-          participant_count: Math.floor(Math.random() * 40) + 10,
-          is_joined: Math.random() > 0.7
-        }));
-
-        setChallenges(mockChallenges);
+        // Since we don't have a learning_challenges table yet, we'll return empty array
+        // to show the empty state
+        setChallenges([]);
       } catch (err) {
         console.error('Error loading challenges:', err);
         setError(err instanceof Error ? err.message : 'Failed to load challenges');
@@ -99,9 +69,8 @@ export function LearningChallenges() {
         )
       );
 
-      // In a real implementation, you would call a Supabase function here
-      // For now, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // TODO: Implement actual join functionality when learning_challenges table is created
+      console.log('Joining challenge:', challengeId);
     } catch (error) {
       console.error('Error joining challenge:', error);
       // Revert the optimistic update on error
@@ -121,15 +90,19 @@ export function LearningChallenges() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-card border rounded-lg p-6 animate-pulse">
-            <div className="space-y-4">
-              <div className="h-4 bg-muted rounded w-3/4" />
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded w-1/2" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-lg bg-muted" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-muted rounded w-1/3" />
                 <div className="h-3 bg-muted rounded w-1/4" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-3 bg-muted rounded w-1/2" />
             </div>
           </div>
         ))}
@@ -140,13 +113,56 @@ export function LearningChallenges() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive">{error}</p>
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Failed to load learning challenges</h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 text-primary hover:underline"
+          className="text-primary hover:underline"
         >
           Try again
         </button>
+      </div>
+    );
+  }
+
+  if (challenges.length === 0) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">Learning Challenges</h2>
+            <p className="text-sm text-muted-foreground">
+              Join challenges to accelerate your learning and earn rewards
+            </p>
+          </div>
+          <button 
+            onClick={() => {/* TODO: Implement create challenge modal */}}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Challenge
+          </button>
+        </div>
+
+        {/* Empty State */}
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Target className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No learning challenges yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Learning challenges will be available soon! We're working on gamified learning experiences to help you achieve your goals and earn rewards.
+          </p>
+          <button
+            onClick={() => {/* TODO: Implement create challenge modal */}}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create First Challenge
+          </button>
+        </div>
       </div>
     );
   }
@@ -175,7 +191,7 @@ export function LearningChallenges() {
         {challenges.map((challenge) => (
           <div key={challenge.id} className="group bg-card border rounded-lg overflow-hidden hover:border-primary/50 transition-colors">
             {/* Status Banner */}
-            <div className="px-4 py-1.5 text-xs font-medium text-center text-white bg-blue-500">
+            <div className="px-4 py-1.5 text-xs font-medium text-center text-white bg-primary">
               {new Date(challenge.end_date) > new Date() ? 'In Progress' : 'Completed'}
             </div>
 
