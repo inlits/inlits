@@ -70,6 +70,13 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
       fetchShelfName();
     }
   }, [shelfParam]);
+
+  useEffect(() => {
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
         // Load audiobooks
         let audiobooksQuery = supabase
           .from('audiobooks')
