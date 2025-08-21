@@ -10,7 +10,6 @@ interface ContentLayoutProps {
   podcasts: ContentItem[];
   activeShelf?: string | null;
   onAddToShelf?: (contentId: string, contentType: string) => void;
-  isSkeletonData?: boolean;
 }
 
 export function ContentLayout({ 
@@ -19,8 +18,7 @@ export function ContentLayout({
   articles, 
   podcasts, 
   activeShelf,
-  onAddToShelf,
-  isSkeletonData = false
+  onAddToShelf
 }: ContentLayoutProps) {
   // Get featured content first
   const featuredBooks = [...audiobooks, ...ebooks]
@@ -75,13 +73,11 @@ export function ContentLayout({
   const BookSection = useCallback(({ 
     books, 
     title, 
-    startIndex,
-    isSkeletonData = false
+    startIndex 
   }: { 
     books: ContentItem[], 
     title: string, 
-    startIndex: number,
-    isSkeletonData?: boolean
+    startIndex: number 
   }) => {
     const rowRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +125,6 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
-                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -139,7 +134,7 @@ export function ContentLayout({
   }, [activeShelf, onAddToShelf]);
 
   // Create sections for articles and podcasts
-  const ArticlesSection = useCallback(({ isSkeletonData = false }: { isSkeletonData?: boolean }) => {
+  const ArticlesSection = useCallback(() => {
     const rowRef = useRef<HTMLDivElement>(null);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -201,7 +196,6 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
-                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -210,7 +204,7 @@ export function ContentLayout({
     );
   }, [articles, activeShelf, onAddToShelf]);
 
-  const PodcastsSection = useCallback(({ isSkeletonData = false }: { isSkeletonData?: boolean }) => {
+  const PodcastsSection = useCallback(() => {
     const rowRef = useRef<HTMLDivElement>(null);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -272,7 +266,6 @@ export function ContentLayout({
                 item={item} 
                 activeShelf={activeShelf}
                 onAddToShelf={onAddToShelf}
-                isSkeletonData={isSkeletonData}
               />
             </div>
           ))}
@@ -337,7 +330,6 @@ export function ContentLayout({
                       item={item} 
                       activeShelf={activeShelf}
                       onAddToShelf={onAddToShelf}
-                      isSkeletonData={isSkeletonData}
                     />
                   </div>
                 ))}
@@ -349,7 +341,7 @@ export function ContentLayout({
       })}
       
       {/* Infinite scroll trigger */}
-      {actualVisibleSections < totalSections && !isSkeletonData && (
+      {actualVisibleSections < totalSections && (
         <div 
           ref={loadMoreTriggerRef} 
           className="h-20 flex items-center justify-center"
