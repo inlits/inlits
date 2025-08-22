@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ContentLayout } from '@/components/content/content-layout';
@@ -11,23 +11,13 @@ interface HomeProps {
   selectedCategory?: string;
 }
 
-// Pagination configuration
-const ITEMS_PER_PAGE = 12;
-const INITIAL_LOAD_PAGES = 2; // Load 2 pages initially
-
-// Cache for content data with pagination
+// Cache for content data
 const contentCache = new Map<string, {
   data: {
     audiobooks: ContentItem[];
     ebooks: ContentItem[];
     articles: ContentItem[];
     podcasts: ContentItem[];
-  };
-  hasMore: {
-    audiobooks: boolean;
-    ebooks: boolean;
-    articles: boolean;
-    podcasts: boolean;
   };
   timestamp: number;
 }>();
@@ -48,33 +38,9 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     articles: [],
     podcasts: []
   });
-  
-  const [hasMore, setHasMore] = useState<{
-    audiobooks: boolean;
-    ebooks: boolean;
-    articles: boolean;
-    podcasts: boolean;
-  }>({
-    audiobooks: true,
-    ebooks: true,
-    articles: true,
-    podcasts: true
-  });
-  
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [currentPage, setCurrentPage] = useState({
-    audiobooks: 0,
-    ebooks: 0,
-    articles: 0,
-    podcasts: 0
-  });
-
-  // Intersection observer for infinite scroll
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
   // Get shelf parameter from URL
   const shelfParam = searchParams.get('shelf');
@@ -117,23 +83,31 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
     }
   }, [shelfParam]);
 
-  // Load content for a specific type with pagination
-  const loadContentType = useCallback(async (
-    contentType: 'audiobooks' | 'ebooks' | 'articles' | 'podcasts',
-    page: number = 0,
-    category?: string
-  ) => {
-    try {
-      const offset = page * ITEMS_PER_PAGE;
-      let query;
-      let table: string;
+  // Load all content once and cache it
+  useEffect(() => {
+    const loadAllContent = async () => {
+      // Check cache first
+      const cacheKey = 'all-content';
+      const cached = contentCache.get(cacheKey);
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('Using cached content');
+        setAllContent(cached.data);
+        setLoading(false);
+        setInitialLoadComplete(true);
+        return;
+      }
 
-      // Determine table and setup query
-      switch (contentType) {
-        case 'audiobooks':
-          table = 'audiobooks';
-          query = supabase
-            .from(table)
+      try {
+        setLoading(true);
+        setError(null);
+
+        console.log('Loading fresh content from database...');
+
+        // Load all content types in parallel
+        const [audiobooksResult, booksResult, articlesResult, podcastsResult] = await Promise.all([
+          supabase
+            .from('audiobooks')
             .select(`
               id,
               title,
@@ -142,19 +116,19 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               created_at,
               featured,
               category,
-              view_count,
               author:profiles!audiobooks_author_id_fkey (
                 id,
                 name,
                 avatar_url,
                 username
               )
-            `);
-          break;
-        case 'ebooks':
-          table = 'books';
-          query = supabase
-            .from(table)
+            `)
+            .eq('status', 'published')
+            .order('featured', { ascending: false })
+            .order('created_at', { ascending: false }),
+
+          supabase
+            .from('books')
             .select(`
               id,
               title,
@@ -163,19 +137,19 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               created_at,
               featured,
               category,
-              view_count,
               author:profiles!books_author_id_fkey (
                 id,
                 name,
                 avatar_url,
                 username
               )
-            `);
-          break;
-        case 'articles':
-          table = 'articles';
-          query = supabase
-            .from(table)
+            `)
+            .eq('status', 'published')
+            .order('featured', { ascending: false })
+            .order('created_at', { ascending: false }),
+
+          supabase
+            .from('articles')
             .select(`
               id,
               title,
@@ -185,19 +159,19 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               created_at,
               featured,
               category,
-              view_count,
               author:profiles!articles_author_id_fkey (
                 id,
                 name,
                 avatar_url,
                 username
               )
-            `);
-          break;
-        case 'podcasts':
-          table = 'podcast_episodes';
-          query = supabase
-            .from(table)
+            `)
+            .eq('status', 'published')
+            .order('featured', { ascending: false })
+            .order('created_at', { ascending: false }),
+
+          supabase
+            .from('podcast_episodes')
             .select(`
               id,
               title,
@@ -207,188 +181,52 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
               created_at,
               featured,
               category,
-              view_count,
               author:profiles!podcast_episodes_author_id_fkey (
                 id,
                 name,
                 avatar_url,
                 username
               )
-            `);
-          break;
-      }
+            `)
+            .eq('status', 'published')
+            .order('featured', { ascending: false })
+            .order('created_at', { ascending: false })
+        ]);
 
-      // Apply filters
-      query = query.eq('status', 'published');
-      
-      if (category && category !== 'all') {
-        query = query.eq('category', category);
-      }
+        // Check for errors
+        if (audiobooksResult.error) {
+          console.error('Audiobooks error:', audiobooksResult.error);
+          throw new Error(`Failed to load audiobooks: ${audiobooksResult.error.message}`);
+        }
+        if (booksResult.error) {
+          console.error('Books error:', booksResult.error);
+          throw new Error(`Failed to load books: ${booksResult.error.message}`);
+        }
+        if (articlesResult.error) {
+          console.error('Articles error:', articlesResult.error);
+          throw new Error(`Failed to load articles: ${articlesResult.error.message}`);
+        }
+        if (podcastsResult.error) {
+          console.error('Podcasts error:', podcastsResult.error);
+          throw new Error(`Failed to load podcasts: ${podcastsResult.error.message}`);
+        }
 
-      // Apply pagination and ordering
-      query = query
-        .order('featured', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + ITEMS_PER_PAGE - 1);
+        console.log('Raw data loaded:', {
+          audiobooks: audiobooksResult.data?.length || 0,
+          books: booksResult.data?.length || 0,
+          articles: articlesResult.data?.length || 0,
+          podcasts: podcastsResult.data?.length || 0
+        });
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Transform data to ContentItem format
-      const items: ContentItem[] = (data || []).map(item => {
-        const baseItem = {
-          id: item.id,
-          title: item.title,
-          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?${contentType}&sig=${item.id}`,
-          views: item.view_count || 0,
-          createdAt: item.created_at,
-          creator: {
-            id: item.author.id,
-            name: item.author.name || item.author.username,
-            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
-            username: item.author.username,
-            followers: 0
-          },
-          category: item.category || contentType,
-          featured: item.featured,
-          rating: 4.5,
-          bookmarked: false // Will be updated later if user is logged in
+        // Calculate read time for articles
+        const calculateReadTime = (content: string): string => {
+          const wordsPerMinute = 200;
+          const words = content.trim().split(/\s+/).length;
+          const minutes = Math.ceil(words / wordsPerMinute);
+          return `${minutes} min read`;
         };
 
-        // Add type-specific properties
-        switch (contentType) {
-          case 'audiobooks':
-            return {
-              ...baseItem,
-              type: 'audiobook' as const,
-              duration: '2 hours'
-            };
-          case 'ebooks':
-            return {
-              ...baseItem,
-              type: 'ebook' as const,
-              duration: '4 hours'
-            };
-          case 'articles':
-            const wordCount = (item as any).content?.trim().split(/\s+/).length || 1000;
-            const readTime = Math.ceil(wordCount / 200);
-            return {
-              ...baseItem,
-              type: 'article' as const,
-              duration: `${readTime} min read`
-            };
-          case 'podcasts':
-            return {
-              ...baseItem,
-              type: 'podcast' as const,
-              duration: (item as any).duration || '30 min'
-            };
-        }
-      });
-
-      return {
-        items,
-        hasMore: data.length === ITEMS_PER_PAGE
-      };
-    } catch (error) {
-      console.error(`Error loading ${contentType}:`, error);
-      return { items: [], hasMore: false };
-    }
-  }, []);
-
-  // Load initial content
-  const loadInitialContent = useCallback(async () => {
-    if (initialLoadComplete) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('Loading initial content...');
-
-      // Load initial pages for all content types in parallel
-      const [audiobooksResult, booksResult, articlesResult, podcastsResult] = await Promise.all([
-        loadContentType('audiobooks', 0, selectedCategory === 'all' ? undefined : selectedCategory),
-        loadContentType('ebooks', 0, selectedCategory === 'all' ? undefined : selectedCategory),
-        loadContentType('articles', 0, selectedCategory === 'all' ? undefined : selectedCategory),
-        loadContentType('podcasts', 0, selectedCategory === 'all' ? undefined : selectedCategory)
-      ]);
-
-      // Get user bookmarks if logged in
-      let userBookmarks: { content_id: string; content_type: string }[] = [];
-      if (user) {
-        const { data: bookmarksData } = await supabase
-          .from('bookmarks')
-          .select('content_id, content_type')
-          .eq('user_id', user.id);
-        
-        userBookmarks = bookmarksData || [];
-      }
-
-      const isBookmarked = (id: string, type: string) => {
-        return userBookmarks.some(b => b.content_id === id && b.content_type === type);
-      };
-
-      // Update bookmarked status
-      const updateBookmarkStatus = (items: ContentItem[]) => {
-        return items.map(item => ({
-          ...item,
-          bookmarked: isBookmarked(item.id, item.type)
-        }));
-      };
-
-      const contentData = {
-        audiobooks: updateBookmarkStatus(audiobooksResult.items),
-        ebooks: updateBookmarkStatus(booksResult.items),
-        articles: updateBookmarkStatus(articlesResult.items),
-        podcasts: updateBookmarkStatus(podcastsResult.items)
-      };
-
-      const hasMoreData = {
-        audiobooks: audiobooksResult.hasMore,
-        ebooks: booksResult.hasMore,
-        articles: articlesResult.hasMore,
-        podcasts: podcastsResult.hasMore
-      };
-
-      setAllContent(contentData);
-      setHasMore(hasMoreData);
-      setCurrentPage({
-        audiobooks: 1,
-        ebooks: 1,
-        articles: 1,
-        podcasts: 1
-      });
-
-      console.log('Initial content loaded:', {
-        audiobooks: contentData.audiobooks.length,
-        ebooks: contentData.ebooks.length,
-        articles: contentData.articles.length,
-        podcasts: contentData.podcasts.length
-      });
-
-    } catch (err) {
-      console.error('Error loading initial content:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load content');
-    } finally {
-      setLoading(false);
-      setInitialLoadComplete(true);
-    }
-  }, [loadContentType, selectedCategory, user, initialLoadComplete]);
-
-  // Load more content for a specific type
-  const loadMoreContent = useCallback(async (contentType: 'audiobooks' | 'ebooks' | 'articles' | 'podcasts') => {
-    if (!hasMore[contentType] || loadingMore) return;
-
-    try {
-      setLoadingMore(true);
-      
-      const nextPage = currentPage[contentType];
-      const result = await loadContentType(contentType, nextPage, selectedCategory === 'all' ? undefined : selectedCategory);
-
-      if (result.items.length > 0) {
-        // Get user bookmarks for new items
+        // Get user bookmarks if logged in
         let userBookmarks: { content_id: string; content_type: string }[] = [];
         if (user) {
           const { data: bookmarksData } = await supabase
@@ -403,103 +241,126 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           return userBookmarks.some(b => b.content_id === id && b.content_type === type);
         };
 
-        const newItems = result.items.map(item => ({
-          ...item,
-          bookmarked: isBookmarked(item.id, item.type)
+        // Transform data to ContentItem format
+        const audiobooks = (audiobooksResult.data || []).map(item => ({
+          id: item.id,
+          type: 'audiobook' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?audiobook&sig=${item.id}`,
+          duration: '2 hours',
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Audiobook',
+          featured: item.featured,
+          rating: 4.5,
+          bookmarked: isBookmarked(item.id, 'audiobook')
         }));
 
-        setAllContent(prev => ({
-          ...prev,
-          [contentType]: [...prev[contentType], ...newItems]
+        const books = (booksResult.data || []).map(item => ({
+          id: item.id,
+          type: 'ebook' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${item.id}`,
+          duration: '4 hours',
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Book',
+          featured: item.featured,
+          rating: 4.5,
+          bookmarked: isBookmarked(item.id, 'book')
         }));
 
-        setCurrentPage(prev => ({
-          ...prev,
-          [contentType]: prev[contentType] + 1
+        const articles = (articlesResult.data || []).map(item => ({
+          id: item.id,
+          type: 'article' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?article&sig=${item.id}`,
+          duration: calculateReadTime(item.content),
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Article',
+          featured: item.featured,
+          rating: 4.5,
+          bookmarked: isBookmarked(item.id, 'article')
         }));
-      }
 
-      setHasMore(prev => ({
-        ...prev,
-        [contentType]: result.hasMore
-      }));
+        const podcasts = (podcastsResult.data || []).map(item => ({
+          id: item.id,
+          type: 'podcast' as const,
+          title: item.title,
+          thumbnail: item.cover_url || `https://source.unsplash.com/random/800x600?podcast&sig=${item.id}`,
+          duration: item.duration,
+          views: 0,
+          createdAt: item.created_at,
+          creator: {
+            id: item.author.id,
+            name: item.author.name,
+            avatar: item.author.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${item.author.id}`,
+            username: item.author.username,
+            followers: 0
+          },
+          category: item.category || 'Podcast',
+          featured: item.featured,
+          rating: 4.5,
+          bookmarked: isBookmarked(item.id, 'podcast')
+        }));
 
-    } catch (error) {
-      console.error(`Error loading more ${contentType}:`, error);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadContentType, selectedCategory, user, hasMore, loadingMore, currentPage]);
+        const contentData = {
+          audiobooks,
+          ebooks: books,
+          articles,
+          podcasts
+        };
 
-  // Setup intersection observer for infinite scroll
-  useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
+        // Cache the data
+        contentCache.set(cacheKey, {
+          data: contentData,
+          timestamp: Date.now()
+        });
 
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && !loadingMore && initialLoadComplete) {
-          // Load more content for types that have more available
-          const typesToLoad = Object.entries(hasMore)
-            .filter(([_, hasMoreItems]) => hasMoreItems)
-            .map(([type]) => type as keyof typeof hasMore);
+        setAllContent(contentData);
+        console.log('Content loaded and cached:', {
+          audiobooks: audiobooks.length,
+          books: books.length,
+          articles: articles.length,
+          podcasts: podcasts.length
+        });
 
-          if (typesToLoad.length > 0) {
-            // Load more for the first available type
-            loadMoreContent(typesToLoad[0]);
-          }
-        }
-      },
-      {
-        rootMargin: '200px', // Start loading 200px before the trigger element
-        threshold: 0.1
-      }
-    );
-
-    if (loadMoreTriggerRef.current) {
-      observerRef.current.observe(loadMoreTriggerRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+      } catch (err) {
+        console.error('Error loading content:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load content');
+      } finally {
+        setLoading(false);
+        setInitialLoadComplete(true);
       }
     };
-  }, [loadMoreContent, loadingMore, initialLoadComplete, hasMore]);
 
-  // Load initial content
-  useEffect(() => {
+    // Only load if we haven't loaded before or cache is expired
     if (!initialLoadComplete) {
-      loadInitialContent();
+      loadAllContent();
     }
-  }, [loadInitialContent]);
-
-  // Reset content when category changes
-  useEffect(() => {
-    if (initialLoadComplete) {
-      setAllContent({
-        audiobooks: [],
-        ebooks: [],
-        articles: [],
-        podcasts: []
-      });
-      setHasMore({
-        audiobooks: true,
-        ebooks: true,
-        articles: true,
-        podcasts: true
-      });
-      setCurrentPage({
-        audiobooks: 0,
-        ebooks: 0,
-        articles: 0,
-        podcasts: 0
-      });
-      setInitialLoadComplete(false);
-    }
-  }, [selectedCategory]);
+  }, [user, initialLoadComplete]);
 
   // Filter content based on selected category (client-side filtering for instant response)
   const filteredContent = useMemo(() => {
@@ -672,31 +533,7 @@ export function Home({ selectedCategory = 'all' }: HomeProps) {
           podcasts={filteredContent.podcasts}
           activeShelf={activeShelf}
           onAddToShelf={handleAddToShelf}
-          onLoadMore={loadMoreContent}
-          hasMore={hasMore}
-          loadingMore={loadingMore}
         />
-        
-        {/* Infinite scroll trigger */}
-        {(hasMore.audiobooks || hasMore.ebooks || hasMore.articles || hasMore.podcasts) && (
-          <div 
-            ref={loadMoreTriggerRef} 
-            className="h-20 flex items-center justify-center mt-8"
-          >
-            {loadingMore ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Loading more content...</span>
-              </div>
-            ) : (
-              <div className="animate-pulse flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary/50"></div>
-                <div className="w-2 h-2 rounded-full bg-primary/50"></div>
-                <div className="w-2 h-2 rounded-full bg-primary/50"></div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './content-card';
 import type { ContentItem } from '@/lib/types';
 
@@ -10,14 +10,6 @@ interface ContentLayoutProps {
   podcasts: ContentItem[];
   activeShelf?: string | null;
   onAddToShelf?: (contentId: string, contentType: string) => void;
-  onLoadMore?: (contentType: 'audiobooks' | 'ebooks' | 'articles' | 'podcasts') => void;
-  hasMore?: {
-    audiobooks: boolean;
-    ebooks: boolean;
-    articles: boolean;
-    podcasts: boolean;
-  };
-  loadingMore?: boolean;
 }
 
 export function ContentLayout({ 
@@ -26,10 +18,7 @@ export function ContentLayout({
   articles, 
   podcasts, 
   activeShelf,
-  onAddToShelf,
-  onLoadMore,
-  hasMore,
-  loadingMore
+  onAddToShelf
 }: ContentLayoutProps) {
   // Get featured content first
   const featuredBooks = [...audiobooks, ...ebooks]
@@ -84,25 +73,13 @@ export function ContentLayout({
   const BookSection = useCallback(({ 
     books, 
     title, 
-    startIndex,
-    contentType
+    startIndex 
   }: { 
     books: ContentItem[], 
     title: string, 
-    startIndex: number,
-    contentType?: 'audiobooks' | 'ebooks'
+    startIndex: number 
   }) => {
     const rowRef = useRef<HTMLDivElement>(null);
-    const [showLoadMore, setShowLoadMore] = useState(false);
-
-    // Check if we need to show load more button
-    useEffect(() => {
-      if (contentType && hasMore && onLoadMore) {
-        const typeHasMore = contentType === 'audiobooks' ? hasMore.audiobooks : hasMore.ebooks;
-        const isLastSection = startIndex + 7 >= books.length;
-        setShowLoadMore(typeHasMore && isLastSection);
-      }
-    }, [books.length, startIndex, contentType]);
 
     const scroll = (direction: 'left' | 'right') => {
       if (!rowRef.current) return;
@@ -151,46 +128,14 @@ export function ContentLayout({
               />
             </div>
           ))}
-          {/* Load More Button */}
-          {showLoadMore && contentType && onLoadMore && (
-            <div className="flex-shrink-0 w-[180px] h-[280px] flex items-center justify-center">
-              <button
-                onClick={() => onLoadMore(contentType)}
-                disabled={loadingMore}
-                className="w-full h-full border-2 border-dashed border-primary/30 rounded-lg hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-primary hover:bg-primary/5"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="text-sm">Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ChevronRight className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-medium">Load More</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
-  }, [activeShelf, onAddToShelf, hasMore, onLoadMore, loadingMore]);
+  }, [activeShelf, onAddToShelf]);
 
   // Create sections for articles and podcasts
   const ArticlesSection = useCallback(() => {
     const rowRef = useRef<HTMLDivElement>(null);
-    const [showLoadMore, setShowLoadMore] = useState(false);
-
-    // Check if we need to show load more button
-    useEffect(() => {
-      if (hasMore && onLoadMore) {
-        setShowLoadMore(hasMore.articles && articles.length > 0);
-      }
-    }, [articles.length]);
 
     const scroll = (direction: 'left' | 'right') => {
       if (!rowRef.current) return;
@@ -254,45 +199,13 @@ export function ContentLayout({
               />
             </div>
           ))}
-          {/* Load More Button */}
-          {showLoadMore && onLoadMore && (
-            <div className="flex-shrink-0 w-[280px] h-[200px] flex items-center justify-center">
-              <button
-                onClick={() => onLoadMore('articles')}
-                disabled={loadingMore}
-                className="w-full h-full border-2 border-dashed border-primary/30 rounded-lg hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-primary hover:bg-primary/5"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="text-sm">Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ChevronRight className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-medium">Load More Articles</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
-  }, [articles, activeShelf, onAddToShelf, hasMore, onLoadMore, loadingMore]);
+  }, [articles, activeShelf, onAddToShelf]);
 
   const PodcastsSection = useCallback(() => {
     const rowRef = useRef<HTMLDivElement>(null);
-    const [showLoadMore, setShowLoadMore] = useState(false);
-
-    // Check if we need to show load more button
-    useEffect(() => {
-      if (hasMore && onLoadMore) {
-        setShowLoadMore(hasMore.podcasts && podcasts.length > 0);
-      }
-    }, [podcasts.length]);
 
     const scroll = (direction: 'left' | 'right') => {
       if (!rowRef.current) return;
@@ -356,34 +269,10 @@ export function ContentLayout({
               />
             </div>
           ))}
-          {/* Load More Button */}
-          {showLoadMore && onLoadMore && (
-            <div className="flex-shrink-0 w-[280px] h-[200px] flex items-center justify-center">
-              <button
-                onClick={() => onLoadMore('podcasts')}
-                disabled={loadingMore}
-                className="w-full h-full border-2 border-dashed border-primary/30 rounded-lg hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-primary hover:bg-primary/5"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="text-sm">Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ChevronRight className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-medium">Load More Podcasts</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
-  }, [podcasts, activeShelf, onAddToShelf, hasMore, onLoadMore, loadingMore]);
+  }, [podcasts, activeShelf, onAddToShelf]);
 
   // Calculate how many book sections we need
   const booksPerSection = 7; // 7 books per row
@@ -403,8 +292,7 @@ export function ContentLayout({
         <BookSection 
           books={featuredBooks} 
           title="Featured Books" 
-          startIndex={0}
-          contentType="audiobooks"
+          startIndex={0} 
         />
       )}
 
@@ -419,8 +307,7 @@ export function ContentLayout({
         <BookSection 
           books={remainingBooks} 
           title="More Books to Explore" 
-          startIndex={0}
-          contentType="ebooks"
+          startIndex={0} 
         />
       )}
 
@@ -452,6 +339,20 @@ export function ContentLayout({
         }
         return null;
       })}
+      
+      {/* Infinite scroll trigger */}
+      {actualVisibleSections < totalSections && (
+        <div 
+          ref={loadMoreTriggerRef} 
+          className="h-20 flex items-center justify-center"
+        >
+          <div className="animate-pulse flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+            <div className="w-2 h-2 rounded-full bg-primary/50"></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
