@@ -68,9 +68,6 @@ const useAuth = create<AuthState>((set, get) => ({
       if (!/[0-9]/.test(password)) {
         throw new Error('Password must contain at least one number');
       }
-      if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        throw new Error('Password must contain at least one special character');
-      }
 
       // Validate username format
       if (!/^[a-zA-Z0-9_]+$/.test(username)) {
