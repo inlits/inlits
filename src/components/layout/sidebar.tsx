@@ -85,7 +85,6 @@ function SidebarItem({
       </Link>
     );
   }
-
   return (
     <Link
       to={showAuthMessage ? '/signin' : to}
@@ -143,26 +142,34 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
     { id: "more", label: "More", icon: Menu, path: '#', onClick: () => setShowMobileMenu(true) }
   ];
 
-  // Desktop sidebar items
-  const desktopNavItems = [
-    { id: "home", label: "Home", icon: Home, path: '/' },
-    { id: "library", label: "Library", icon: Library, path: '/library', requiresAuth: true },
-    { id: "followed", label: "Followed", icon: TrendingUp, path: '/followed', requiresAuth: true },
-    { id: "community", label: "Community", icon: Users2, path: '/community', requiresAuth: true },
-    { id: "history", label: "History", icon: History, path: '/history', requiresAuth: true },
-    { id: "profile", label: "Profile", icon: User, path: '/profile', requiresAuth: true },
+  // All navigation items for mobile menu
+  const allNavItems = [
+    { id: "profile", label: "Profile", icon: User, path: user ? '/profile' : '/signin' },
+    { id: "goals", label: "Learning Goals", icon: Target, path: user ? '/library?tab=goals' : '/signin' },
+    { id: "history", label: "History", icon: History, path: user ? '/history' : '/signin' },
     ...(user && profile?.role === 'creator' ? [
       { id: "dashboard", label: "Creator Dashboard", icon: CreditCard, path: `/dashboard/${profile.username}` }
     ] : user ? [] : [
       { id: "become-creator", label: "Become a Creator", icon: Rocket, path: "/become-creator", highlight: true }
-    ])
+    ]),
+    // Community items
+    { id: "book-clubs", label: "Book Clubs", icon: BookMarked, path: user ? '/community?tab=book-clubs' : '/signin' },
+    { id: "discussions", label: "Discussions", icon: MessageSquare, path: user ? '/community?tab=discussions' : '/signin' },
+    { id: "study-groups", label: "Study Groups", icon: Users2, path: user ? '/community?tab=study-groups' : '/signin' },
+    { id: "challenges", label: "Learning Challenges", icon: Trophy, path: user ? '/community?tab=challenges' : '/signin' },
+    // Explore items
+    { id: "articles", label: "Articles", icon: Newspaper, path: '/explore/articles' },
+    { id: "ebooks", label: "E-Books", icon: BookOpen, path: '/explore/ebooks' },
+    { id: "audiobooks", label: "Audiobooks", icon: Headphones, path: '/explore/audiobooks' },
+    { id: "podcasts", label: "Podcasts", icon: Mic, path: '/explore/podcasts' },
+    { id: "summaries", label: "Book Summaries", icon: BookMarked, path: '/explore/summaries' },
+    { id: "trending", label: "Trending", icon: Sparkles, path: '/explore/trending' }
   ];
 
   // If mobile, render bottom navigation
   if (isMobile) {
     return (
       <>
-        {/* Bottom Navigation Bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50">
           <div className="flex items-center justify-around px-2 py-2">
             {mainNavItems.map((item) => (
@@ -286,43 +293,50 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
                       <SidebarItem
                         icon={Newspaper}
                         label="Articles"
-                        to="/search?type=article"
-                        active={isActive('/search') && searchParams.get('type') === 'article'}
+                        to="/explore/articles"
+                        active={isActive('/explore/articles')}
                         onClick={() => setShowMobileMenu(false)}
                       />
                       <SidebarItem
                         icon={BookOpen}
                         label="E-Books"
-                        to="/search?type=book"
-                        active={isActive('/search') && searchParams.get('type') === 'book'}
+                        to="/explore/ebooks"
+                        active={isActive('/explore/ebooks')}
                         onClick={() => setShowMobileMenu(false)}
                       />
                       <SidebarItem
                         icon={Headphones}
                         label="Audiobooks"
-                        to="/search?type=audiobook"
-                        active={isActive('/search') && searchParams.get('type') === 'audiobook'}
+                        to="/explore/audiobooks"
+                        active={isActive('/explore/audiobooks')}
                         onClick={() => setShowMobileMenu(false)}
                       />
                       <SidebarItem
                         icon={Mic}
                         label="Podcasts"
-                        to="/search?type=podcast"
-                        active={isActive('/search') && searchParams.get('type') === 'podcast'}
+                        to="/explore/podcasts"
+                        active={isActive('/explore/podcasts')}
+                        onClick={() => setShowMobileMenu(false)}
+                      />
+                      <SidebarItem
+                        icon={BookMarked}
+                        label="Book Summaries"
+                        to="/explore/summaries"
+                        active={isActive('/explore/summaries')}
                         onClick={() => setShowMobileMenu(false)}
                       />
                       <SidebarItem
                         icon={Sparkles}
                         label="Trending"
-                        to="/search?trending=true"
-                        active={isActive('/search') && searchParams.get('trending') === 'true'}
+                        to="/explore/trending"
+                        active={isActive('/explore/trending')}
                         onClick={() => setShowMobileMenu(false)}
                       />
                     </div>
                   </div>
 
-                  {/* Support Section */}
-                  <div className="space-y-2">
+                  {/* Footer Links */}
+                  <div className="space-y-2 pt-4 border-t">
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Support</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Link
@@ -345,180 +359,3 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
                         Terms
-                      </Link>
-                      <Link
-                        to="/privacy"
-                        onClick={() => setShowMobileMenu(false)}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        Privacy
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // Desktop sidebar
-  return (
-    <aside 
-      className={`fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-[hsl(var(--sidebar-background))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--sidebar-background))]/60 border-r transition-all duration-300 z-40 ${
-        collapsed ? 'w-16' : 'w-64'
-      }`}
-    >
-      <div className="flex flex-col h-full">
-        {/* Collapse Toggle */}
-        <div className="p-4 border-b">
-          <button
-            onClick={() => handleCollapse(!collapsed)}
-            className="w-full flex items-center justify-center p-2 hover:bg-primary/5 rounded-lg transition-colors"
-          >
-            {collapsed ? (
-              <ChevronRight className="w-5 h-5" />
-            ) : (
-              <ChevronLeft className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {desktopNavItems.map((item) => (
-            <SidebarItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              to={item.path}
-              active={isActive(item.path)}
-              collapsed={collapsed}
-              requiresAuth={item.requiresAuth}
-              highlight={item.highlight}
-            />
-          ))}
-
-          {!collapsed && (
-            <>
-              {/* Explore Section */}
-              <div className="pt-6">
-                <h3 className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Explore
-                </h3>
-                <div className="space-y-1">
-                  <SidebarItem
-                    icon={Newspaper}
-                    label="Articles"
-                    to="/search?type=article"
-                    active={isActive('/search') && searchParams.get('type') === 'article'}
-                    collapsed={collapsed}
-                  />
-                  <SidebarItem
-                    icon={BookOpen}
-                    label="E-Books"
-                    to="/search?type=book"
-                    active={isActive('/search') && searchParams.get('type') === 'book'}
-                    collapsed={collapsed}
-                  />
-                  <SidebarItem
-                    icon={Headphones}
-                    label="Audiobooks"
-                    to="/search?type=audiobook"
-                    active={isActive('/search') && searchParams.get('type') === 'audiobook'}
-                    collapsed={collapsed}
-                  />
-                  <SidebarItem
-                    icon={Mic}
-                    label="Podcasts"
-                    to="/search?type=podcast"
-                    active={isActive('/search') && searchParams.get('type') === 'podcast'}
-                    collapsed={collapsed}
-                  />
-                  <SidebarItem
-                    icon={Sparkles}
-                    label="Trending"
-                    to="/search?trending=true"
-                    active={isActive('/search') && searchParams.get('trending') === 'true'}
-                    collapsed={collapsed}
-                  />
-                </div>
-              </div>
-
-              {/* Community Section */}
-              <div className="pt-6">
-                <h3 className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Community
-                </h3>
-                <div className="space-y-1">
-                  <SidebarItem
-                    icon={BookMarked}
-                    label="Book Clubs"
-                    to={user ? '/community?tab=book-clubs' : '/signin'}
-                    active={isActive('/community') && searchParams.get('tab') === 'book-clubs'}
-                    collapsed={collapsed}
-                    requiresAuth={true}
-                  />
-                  <SidebarItem
-                    icon={MessageSquare}
-                    label="Discussions"
-                    to={user ? '/community?tab=discussions' : '/signin'}
-                    active={isActive('/community') && (searchParams.get('tab') === 'discussions' || !searchParams.get('tab'))}
-                    collapsed={collapsed}
-                    requiresAuth={true}
-                  />
-                  <SidebarItem
-                    icon={Users2}
-                    label="Study Groups"
-                    to={user ? '/community?tab=study-groups' : '/signin'}
-                    active={isActive('/community') && searchParams.get('tab') === 'study-groups'}
-                    collapsed={collapsed}
-                    requiresAuth={true}
-                  />
-                  <SidebarItem
-                    icon={Trophy}
-                    label="Learning Challenges"
-                    to={user ? '/community?tab=challenges' : '/signin'}
-                    active={isActive('/community') && searchParams.get('tab') === 'challenges'}
-                    collapsed={collapsed}
-                    requiresAuth={true}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </nav>
-
-        {/* Footer */}
-        {!collapsed && (
-          <div className="p-4 border-t">
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <SidebarItem
-                label="About"
-                to="/about"
-                isFooterLink
-              />
-              <SidebarItem
-                label="Contact"
-                to="/contact"
-                isFooterLink
-              />
-              <SidebarItem
-                label="Terms"
-                to="/terms"
-                isFooterLink
-              />
-              <SidebarItem
-                label="Privacy"
-                to="/privacy"
-                isFooterLink
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </aside>
-  );
-}
