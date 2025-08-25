@@ -105,6 +105,8 @@ export function DashboardLayout() {
   const { username } = useParams();
   const { theme, setTheme } = useTheme();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const isMobile = window.innerWidth < 768;
 
   // Show loading state while checking auth
   if (loading) {
@@ -136,26 +138,37 @@ export function DashboardLayout() {
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 text-primary hover:text-primary/90">
               <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back to Inlits</span>
+              <span className="text-sm font-medium hidden sm:inline">Back to Inlits</span>
             </Link>
             <div className="h-4 w-px bg-border" />
-            <div className="text-sm font-medium">Creator Dashboard</div>
+            <div className="text-sm font-medium hidden md:inline">Creator Dashboard</div>
+            {/* Mobile menu button */}
+            {isMobile && (
+              <button
+                onClick={() => setShowMobileSidebar(true)}
+                className="p-2 hover:bg-accent rounded-lg transition-colors md:hidden"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
             {/* Create Button */}
             <button 
               onClick={() => setShowCreateDialog(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span className="text-sm font-medium">Create</span>
+              <span className="text-sm font-medium hidden sm:inline">Create</span>
             </button>
 
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 hover:bg-accent/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent/10 rounded-lg transition-colors hidden sm:block"
             >
               {theme === 'dark' ? (
                 <Sun className="w-5 h-5" />
@@ -170,7 +183,7 @@ export function DashboardLayout() {
             </button>
 
             {/* Profile */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 hidden sm:flex">
               {profile?.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -187,13 +200,30 @@ export function DashboardLayout() {
                 <div className="text-xs text-muted-foreground">Creator</div>
               </div>
             </div>
+            
+            {/* Mobile Profile Avatar Only */}
+            {isMobile && (
+              <div className="w-8 h-8 rounded-full overflow-hidden sm:hidden">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.username}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center font-medium text-xs">
+                    {profile?.username[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <div className="pt-14 flex">
         {/* Sidebar */}
-        <aside className="w-64 border-r fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-[hsl(var(--sidebar-background))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--sidebar-background))]/60">
+        <aside className="w-64 border-r fixed left-0 top-14 h-[calc(100vh-3.5rem)] bg-[hsl(var(--sidebar-background))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--sidebar-background))]/60 hidden md:block">
           <nav className="p-4 space-y-2">
             {sidebarItems.map(item => {
               const Icon = item.icon;
@@ -217,8 +247,89 @@ export function DashboardLayout() {
           </nav>
         </aside>
 
+        {/* Mobile Sidebar Overlay */}
+        {isMobile && showMobileSidebar && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
+            onClick={() => setShowMobileSidebar(false)}
+          >
+            <div 
+              className="fixed left-0 top-0 bottom-0 w-64 bg-[hsl(var(--sidebar-background))] border-r shadow-xl transform transition-transform duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile Sidebar Header */}
+              <div className="h-14 border-b flex items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-sm">
+                      {profile?.username[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-medium text-sm">{profile?.name || profile?.username}</div>
+                    <div className="text-xs text-muted-foreground">Creator</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileSidebar(false)}
+                  className="p-2 hover:bg-accent rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Mobile Navigation */}
+              <nav className="p-4 space-y-2">
+                {sidebarItems.map(item => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === `/dashboard/${username}${item.path}`;
+                  
+                  return (
+                    <Link
+                      key={item.id}
+                      to={`/dashboard/${username}${item.path}`}
+                      onClick={() => setShowMobileSidebar(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-primary/10 hover:text-primary'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  );
+                })}
+                
+                {/* Mobile-only options */}
+                <div className="pt-4 mt-4 border-t">
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-primary/10 hover:text-primary w-full"
+                  >
+                    {theme === 'dark' ? (
+                      <Sun className="w-5 h-5" />
+                    ) : (
+                      <Moon className="w-5 h-5" />
+                    )}
+                    <span className="font-medium">
+                      {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    </span>
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
-        <main className="flex-1 ml-64">
+        <main className="flex-1 md:ml-64">
           <div className="container py-6">
             <Outlet />
           </div>
@@ -232,7 +343,7 @@ export function DashboardLayout() {
           onClick={() => setShowCreateDialog(false)}
         >
           <div 
-            className="bg-background rounded-xl shadow-xl w-[400px] mx-4 relative animate-in fade-in-0 zoom-in-95 duration-200"
+            className="bg-background rounded-xl shadow-xl w-full max-w-[400px] mx-4 relative animate-in fade-in-0 zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b">
@@ -254,7 +365,7 @@ export function DashboardLayout() {
                 <Link
                   key={option.id}
                   to={`/dashboard/${username}${option.path}`}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/10 transition-colors"
+                  className="flex items-center gap-3 p-4 rounded-lg hover:bg-accent/10 transition-colors"
                   onClick={() => setShowCreateDialog(false)}
                 >
                   <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
