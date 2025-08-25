@@ -18,6 +18,7 @@ export function CategoriesScroll({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const isMobile = window.innerWidth < 768;
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -47,7 +48,7 @@ export function CategoriesScroll({
     <div 
       className="fixed top-14 right-0 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-40 transition-all duration-300" 
       style={{ 
-        left: collapsed ? '64px' : '256px'
+        left: isMobile ? '0' : (collapsed ? '64px' : '256px')
       }}
     >
       <div className="relative flex items-center h-full">

@@ -125,23 +125,35 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <EmailVerificationBanner />
-      <Sidebar 
-        onCollapse={setSidebarCollapsed} 
-        defaultCollapsed={!isHomePage || isMobile}
-      />
+      {/* Only show desktop sidebar on non-mobile */}
+      {!isMobile && (
+        <Sidebar 
+          onCollapse={setSidebarCollapsed} 
+          defaultCollapsed={!isHomePage || isMobile}
+        />
+      )}
+      
+      {/* Mobile bottom navigation */}
+      {isMobile && (
+        <Sidebar 
+          onCollapse={setSidebarCollapsed} 
+          defaultCollapsed={true}
+        />
+      )}
+      
       {isHomePage && (
         <CategoriesScroll
           categories={categories}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
-          collapsed={sidebarCollapsed}
+          collapsed={isMobile ? true : sidebarCollapsed}
         />
       )}
       <main 
         className={`flex-1 transition-all duration-300 ${
           isHomePage ? 'pt-16' : 'pt-14'
-        } ${isPlayerVisible ? 'pb-32' : ''} ${
-          isMobile ? 'ml-16 w-[calc(100%-64px)]' : `ml-${sidebarCollapsed ? '16' : '64'} w-[calc(100%-${sidebarCollapsed ? '64px' : '256px'})]`
+        } ${isPlayerVisible ? 'pb-32' : isMobile ? 'pb-20' : ''} ${
+          isMobile ? 'ml-0 w-full' : `ml-${sidebarCollapsed ? '16' : '64'} w-[calc(100%-${sidebarCollapsed ? '64px' : '256px'})]`
         }`}
       >
         <div className="container px-4 mx-auto">

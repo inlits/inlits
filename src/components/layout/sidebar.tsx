@@ -35,6 +35,7 @@ interface SidebarItemProps {
   requiresAuth?: boolean;
   isFooterLink?: boolean;
   highlight?: boolean;
+  isMobile?: boolean;
 }
 
 function SidebarItem({ 
@@ -46,7 +47,8 @@ function SidebarItem({
   onClick, 
   requiresAuth, 
   isFooterLink,
-  highlight 
+  highlight,
+  isMobile = false
 }: SidebarItemProps) {
   const { user } = useAuth();
   const showAuthMessage = requiresAuth && !user;
@@ -62,6 +64,25 @@ function SidebarItem({
     );
   }
 
+  // Mobile bottom nav item
+  if (isMobile) {
+    return (
+      <Link
+        to={showAuthMessage ? '/signin' : to}
+        className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
+          active
+            ? 'text-primary'
+            : highlight
+            ? 'text-primary'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+        onClick={onClick}
+      >
+        {Icon && <Icon className="w-5 h-5" />}
+        <span className="text-xs font-medium leading-none">{label}</span>
+      </Link>
+    );
+  }
   return (
     <Link
       to={showAuthMessage ? '/signin' : to}
@@ -109,6 +130,34 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Main navigation items for mobile bottom nav
+  const mainNavItems = [
+    { id: "home", label: "Home", icon: Home, path: '/' },
+    { id: "library", label: "Library", icon: Library, path: user ? '/library' : '/signin' },
+    { id: "community", label: "Community", icon: Users2, path: user ? '/community' : '/signin' },
+    { id: "profile", label: "Profile", icon: User, path: user ? '/profile' : '/signin' }
+  ];
+
+  // If mobile, render bottom navigation
+  if (isMobile) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50">
+        <div className="flex items-center justify-around px-2 py-2">
+          {mainNavItems.map((item) => (
+            <SidebarItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              to={item.path}
+              active={isActive(item.path)}
+              isMobile={true}
+            />
+          ))}
+        </div>
+      </nav>
+    );
+  }
 
   const exploreItems = [
     { id: "articles", label: "Articles", icon: Newspaper, path: '/explore/articles' },
@@ -258,23 +307,25 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
         )}
       </aside>
 
-      {/* Collapse Toggle Button */}
-      <button
-        onClick={() => handleCollapse(!collapsed)}
-        className="fixed z-50 h-12 flex items-center justify-center bg-background hover:bg-primary/5 border rounded-r-full transition-all duration-300"
-        style={{ 
-          left: collapsed ? '64px' : '256px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '24px'
-        }}
-      >
-        {collapsed ? (
-          <ChevronRight className="w-4 h-4" />
-        ) : (
-          <ChevronLeft className="w-4 h-4" />
-        )}
-      </button>
+      {/* Collapse Toggle Button - Only show on desktop */}
+      {!isMobile && (
+        <button
+          onClick={() => handleCollapse(!collapsed)}
+          className="fixed z-50 h-12 flex items-center justify-center bg-background hover:bg-primary/5 border rounded-r-full transition-all duration-300"
+          style={{ 
+            left: collapsed ? '64px' : '256px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '24px'
+          }}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </button>
+      )}
     </>
   );
 }
