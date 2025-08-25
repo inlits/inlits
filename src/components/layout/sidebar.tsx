@@ -23,6 +23,8 @@ import {
   Users2,
   MessageSquare,
   Trophy,
+  MoreHorizontal,
+  X,
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -116,6 +118,7 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
   const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const isMobile = window.innerWidth < 768;
 
   // Update collapsed state when defaultCollapsed changes
@@ -136,26 +139,99 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
     { id: "home", label: "Home", icon: Home, path: '/' },
     { id: "library", label: "Library", icon: Library, path: user ? '/library' : '/signin' },
     { id: "community", label: "Community", icon: Users2, path: user ? '/community' : '/signin' },
-    { id: "profile", label: "Profile", icon: User, path: user ? '/profile' : '/signin' }
+    { id: "more", label: "More", icon: MoreHorizontal, path: '#', isMore: true }
+  ];
+
+  // Additional navigation items for the "More" menu
+  const moreNavItems = [
+    { id: "profile", label: "Profile", icon: User, path: user ? '/profile' : '/signin' },
+    { id: "goals", label: "Learning Goals", icon: Target, path: user ? '/library?tab=goals' : '/signin' },
+    { id: "history", label: "History", icon: History, path: user ? '/history' : '/signin' },
+    ...(user && profile?.role === 'creator' ? [
+      { id: "dashboard", label: "Creator Dashboard", icon: CreditCard, path: `/dashboard/${profile.username}` }
+    ] : user ? [] : []),
+    ...(user && profile?.role !== 'creator' ? [
+      { id: "become-creator", label: "Become a Creator", icon: Rocket, path: "/become-creator" }
+    ] : []),
+    { id: "bookmarks", label: "Book Clubs", icon: BookMarked, path: user ? '/community?tab=book-clubs' : '/signin' },
+    { id: "discussions", label: "Discussions", icon: MessageSquare, path: user ? '/community?tab=discussions' : '/signin' },
+    { id: "study-groups", label: "Study Groups", icon: Users2, path: user ? '/community?tab=study-groups' : '/signin' },
+    { id: "challenges", label: "Learning Challenges", icon: Trophy, path: user ? '/community?tab=challenges' : '/signin' }
   ];
 
   // If mobile, render bottom navigation
   if (isMobile) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50">
-        <div className="flex items-center justify-around px-2 py-2">
-          {mainNavItems.map((item) => (
-            <SidebarItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              to={item.path}
-              active={isActive(item.path)}
-              isMobile={true}
-            />
-          ))}
-        </div>
-      </nav>
+      <>
+        <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50">
+          <div className="flex items-center justify-around px-2 py-2">
+            {mainNavItems.map((item) => {
+              if (item.isMore) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setShowMobileMore(true)}
+                    className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                    <span className="text-xs font-medium leading-none">More</span>
+                  </button>
+                );
+              }
+              
+              return (
+                <SidebarItem
+                  key={item.id}
+                  icon={item.icon}
+                  label={item.label}
+                  to={item.path}
+                  active={isActive(item.path)}
+                  isMobile={true}
+                />
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Mobile More Menu Overlay */}
+        {showMobileMore && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end"
+            onClick={() => setShowMobileMore(false)}
+          >
+            <div 
+              className="w-full bg-background rounded-t-xl border-t shadow-xl max-h-[70vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="text-lg font-semibold">More Options</h3>
+                <button
+                  onClick={() => setShowMobileMore(false)}
+                  className="p-2 hover:bg-accent rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Items */}
+              <div className="p-4 space-y-2">
+                {moreNavItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={item.path}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-accent"
+                    onClick={() => setShowMobileMore(false)}
+                  >
+                    <item.icon className="w-5 h-5 text-muted-foreground" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
