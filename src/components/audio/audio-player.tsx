@@ -345,7 +345,9 @@ export function AudioPlayer({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t shadow-lg z-40">
+    <div className={`fixed left-0 right-0 bg-background/95 backdrop-blur border-t shadow-lg z-40 ${
+      isMobile ? 'bottom-20' : 'bottom-0'
+    }`}>
       <audio 
         ref={audioRef}
         preload="auto"

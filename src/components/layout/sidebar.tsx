@@ -163,7 +163,7 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
   if (isMobile) {
     return (
       <>
-        <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50">
+        <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50 h-20">
           <div className="flex items-center justify-around px-2 py-2">
             {mainNavItems.map((item) => {
               if (item.isMore) {
