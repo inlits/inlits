@@ -150,13 +150,17 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         />
       )}
       <main 
-        className={`flex-1 transition-all duration-300 ${
+        className={`transition-all duration-300 ${
           isHomePage ? 'pt-16' : 'pt-14'
         } ${isPlayerVisible ? 'pb-32' : isMobile ? 'pb-20' : ''} ${
-          isMobile ? 'ml-0 w-full' : `ml-${sidebarCollapsed ? '16' : '64'} w-[calc(100%-${sidebarCollapsed ? '64px' : '256px'})]`
+          isMobile 
+            ? 'ml-0' 
+            : sidebarCollapsed 
+              ? 'ml-16' 
+              : 'ml-64'
         }`}
       >
-        <div className="container px-4 mx-auto">
+        <div className={`container px-4 mx-auto ${isMobile ? 'max-w-full' : ''}`}>
           {React.isValidElement(children) && React.cloneElement(children as React.ReactElement, { selectedCategory })}
         </div>
       </main>

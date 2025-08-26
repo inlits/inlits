@@ -329,7 +329,7 @@ export function DashboardLayout() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 md:ml-64">
+        <main className={`flex-1 transition-all duration-300 ${isMobile ? 'ml-0' : 'ml-64'}`}>
           <div className="container py-6">
             <Outlet />
           </div>
