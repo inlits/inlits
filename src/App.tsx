@@ -175,6 +175,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           author={currentAudio.author}
           thumbnail={currentAudio.thumbnail}
           type={currentAudio.type}
+          isMobile={isMobile}
         />
       )}
     </div>

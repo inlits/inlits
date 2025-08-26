@@ -27,6 +27,7 @@ interface AudioPlayerProps {
   author: string;
   thumbnail: string;
   type: 'audiobook' | 'podcast';
+  isMobile?: boolean;
 }
 
 interface Settings {
@@ -41,7 +42,8 @@ export function AudioPlayer({
   title, 
   author, 
   thumbnail,
-  type
+  type,
+  isMobile = false
 }: AudioPlayerProps) {
   const { user } = useAuth();
   const { 
