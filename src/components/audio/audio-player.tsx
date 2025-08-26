@@ -199,6 +199,50 @@ export function AudioPlayer({
     setCurrentTime(newTime);
   };
 
+  const handleProgressMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressRef.current || !audioRef.current || isLoading) return;
+    
+    // Only update if mouse is pressed (dragging)
+    if (e.buttons === 1) {
+      const rect = progressRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const newTime = percent * duration;
+      
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const handleProgressMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressRef.current || !audioRef.current || isLoading) return;
+    
+    const rect = progressRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const newTime = percent * duration;
+    
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    
+    // Add global mouse move and mouse up listeners for smooth dragging
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!progressRef.current || !audioRef.current) return;
+      
+      const rect = progressRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const newTime = percent * duration;
+      
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    };
+    
+    const handleGlobalMouseUp = () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+  };
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
@@ -301,7 +345,7 @@ export function AudioPlayer({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t shadow-lg z-40">
       <audio 
         ref={audioRef}
         preload="auto"
@@ -312,14 +356,21 @@ export function AudioPlayer({
       {/* Progress Bar */}
       <div
         ref={progressRef}
+        onMouseDown={handleProgressMouseDown}
+        onMouseMove={handleProgressMouseMove}
         onClick={handleProgressClick}
-        className="h-1 bg-muted cursor-pointer group"
+        className="h-1 bg-muted cursor-pointer group relative"
       >
         <div
-          className="h-full bg-primary relative group-hover:bg-primary/90 transition-colors"
+          className="h-full bg-primary relative transition-all duration-75"
           style={{ width: `${(currentTime / duration) * 100}%` }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity transform scale-110" />
+        </div>
+        
+        {/* Hover preview */}
+        <div className="absolute top-0 left-0 right-0 h-full opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="h-full bg-primary/20" />
         </div>
       </div>
 

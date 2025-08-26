@@ -174,7 +174,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           title={currentAudio.title}
           author={currentAudio.author}
           thumbnail={currentAudio.thumbnail}
-          type="audiobook"
+          type={currentAudio.type}
         />
       )}
     </div>
