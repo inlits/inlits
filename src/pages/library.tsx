@@ -90,9 +90,7 @@ export function Library() {
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
-
-  useEffect(() => {
+    
     if (user) {
       loadLibrary();
       loadCustomShelves();
@@ -274,7 +272,7 @@ export function Library() {
                     id,
                     title,
                     cover_url,
-                    ${item.content_type === 'audiobook' || item.content_type === 'podcast' ? 'duration,' : ''}
+                    ${item.content_type === 'podcast' ? 'duration,' : ''}
                     profiles!${tableName}_author_id_fkey(username)
                   `)
                   .eq('id', item.content_id)
@@ -350,6 +348,11 @@ export function Library() {
     } catch (error) {
       console.error('Error removing from library:', error);
     }
+  };
+
+  const handleLearningGoalAdded = async () => {
+    await loadLibrary();
+    await loadCustomShelves();
   };
 
   const filteredItems = libraryItems.filter(item => {
@@ -674,6 +677,7 @@ export function Library() {
       <LearningGoalsDialog
         isOpen={showLearningGoals}
         onClose={() => setShowLearningGoals(false)}
+        onAddGoal={handleLearningGoalAdded}
       />
     </div>
   );
