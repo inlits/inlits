@@ -13,7 +13,8 @@ import {
   Star,
   Filter,
   Search,
-  MoreHorizontal
+  MoreHorizontal,
+  BookMarked
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -613,22 +614,23 @@ export function LibraryPage() {
       <div className="border-b">
         <div className="relative">
           <div className="flex gap-2 md:gap-4 overflow-x-auto scrollbar-hide pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                {tab.count}
-              </span>
-            </button>
-          ))}
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -963,7 +965,6 @@ export function LibraryPage() {
               </div>
             )}
           </div>
-        </div>
         )}
       </div>
 
