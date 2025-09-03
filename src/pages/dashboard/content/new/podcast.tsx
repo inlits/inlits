@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { ChevronLeft, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CATEGORIES } from '@/lib/constants/categories';
@@ -85,11 +85,10 @@ export function NewPodcastPage() {
       const title = formData.get('title') as string;
       const description = formData.get('description') as string;
       const duration = formData.get('duration') as string;
-      const categories = formData.getAll('categories') as string[];
       const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
 
       // Validate categories
-      if (categories.length === 0) {
+      if (selectedCategories.length === 0) {
         setError('At least one category is required');
         return;
       }
@@ -135,8 +134,8 @@ export function NewPodcastPage() {
         .insert({
           title,
           description,
-          category: categories[0] || null, // Keep first category for backward compatibility
-          categories,
+          category: selectedCategories[0] || null, // Keep first category for backward compatibility
+          categories: selectedCategories,
           cover_url: coverUrl,
           audio_url: audioUrl,
           duration,
@@ -340,15 +339,9 @@ export function NewPodcastPage() {
               </div>
             )}
           </div>
-                  />
-                  <span className="text-xs">{category}</span>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select multiple categories that best describe your podcast
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Select multiple categories that best describe your podcast
+          </p>
         </div>
 
         {/* Actions */}
