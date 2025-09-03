@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { ChevronLeft, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CATEGORIES } from '@/lib/constants/categories';
@@ -18,6 +18,21 @@ export function NewPodcastPage() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-dropdown]')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,11 +85,10 @@ export function NewPodcastPage() {
       const title = formData.get('title') as string;
       const description = formData.get('description') as string;
       const duration = formData.get('duration') as string;
-      const categories = formData.getAll('categories') as string[];
       const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
 
       // Validate categories
-      if (categories.length === 0) {
+      if (selectedCategories.length === 0) {
         setError('At least one category is required');
         return;
       }
@@ -120,8 +134,8 @@ export function NewPodcastPage() {
         .insert({
           title,
           description,
-          category: categories[0] || null, // Keep first category for backward compatibility
-          categories,
+          category: selectedCategories[0] || null, // Keep first category for backward compatibility
+          categories: selectedCategories,
           cover_url: coverUrl,
           audio_url: audioUrl,
           duration,
@@ -263,27 +277,71 @@ export function NewPodcastPage() {
         {/* Category */}
         <div className="space-y-2">
           <Label>Categories</Label>
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {CATEGORIES.map((category) => (
-                <label
-                  key={category}
-                  className="flex items-center gap-2 p-2 text-sm cursor-pointer transition-colors hover:bg-accent rounded"
-                >
-                  <input
-                    type="checkbox"
-                    name="categories"
-                    value={category}
-                    className="rounded border-input"
-                  />
-                  <span className="text-xs">{category}</span>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select multiple categories that best describe your podcast
-            </p>
+          <div className="relative" data-dropdown>
+            <button
+              type="button"
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="w-full h-10 px-3 text-left flex items-center justify-between rounded-md border border-input bg-background text-sm transition-colors hover:bg-accent"
+            >
+              <span>
+                {selectedCategories.length === 0 
+                  ? 'Select Categories' 
+                  : selectedCategories.length === 1 
+                    ? selectedCategories[0]
+                    : `${selectedCategories.length} categories selected`
+                }
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  showCategoryDropdown ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {showCategoryDropdown && (
+              <div className="absolute z-50 w-full py-2 mt-1 duration-100 border rounded-md shadow-lg bg-background animate-in fade-in-0 zoom-in-95 max-h-60 overflow-y-auto">
+                <div className="px-3 py-2 text-xs text-muted-foreground border-b">
+                  Select only relevant categories
+                </div>
+                {CATEGORIES.map((category) => (
+                  <label
+                    key={category}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground rounded-md ${
+                      selectedCategories.includes(category) ? 'bg-primary text-primary-foreground' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCategories(prev => [...prev, category]);
+                        } else {
+                          setSelectedCategories(prev => prev.filter(c => c !== category));
+                        }
+                      }}
+                      className="rounded border-input"
+                    />
+                    <span>{category}</span>
+                  </label>
+                ))}
+                <div className="px-3 py-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategories([]);
+                    }}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+          <p className="text-xs text-muted-foreground">
+            Select multiple categories that best describe your podcast
+          </p>
         </div>
 
         {/* Actions */}
