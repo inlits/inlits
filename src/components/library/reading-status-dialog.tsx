@@ -519,5 +519,3 @@ export function ReadingStatusDialog({
     </div>
   );
 }
-
-export { ReadingStatusDialog }
