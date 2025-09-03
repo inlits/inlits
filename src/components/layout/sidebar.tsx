@@ -265,8 +265,8 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
               <SidebarItem
                 icon={Target}
                 label="Learning Goals"
-                to={user ? '/library?tab=goals' : '/signin'}
-                active={isActive('/library') && searchParams.get('tab') === 'goals'}
+                to={user ? '/library?openLearningGoals=true' : '/signin'}
+                active={false}
                 collapsed={collapsed}
               />
               <SidebarItem

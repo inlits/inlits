@@ -1,19 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, 
-  Target, 
-  CheckCircle, 
+  BookOpen, 
+  Headphones, 
+  Play, 
+  Pause, 
   Plus,
-  BookOpen,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Target,
+  CheckCircle,
+  Eye,
+  Star,
+  Filter,
+  Search,
+  MoreHorizontal
 } from 'lucide-react';
-import { LibraryShelf } from '@/components/library/library-shelf';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
-import { LearningGoalsDialog } from '@/components/library/learning-goals-dialog';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ReadingStatusDialog } from '@/components/library/reading-status-dialog';
 import { CreateShelfDialog } from '@/components/library/create-shelf-dialog';
 import type { ContentItem } from '@/lib/types';
+
+interface ReadingStatusItem extends ContentItem {
+  status: string;
+  progress: number;
+  started_at?: string;
+  completed_at?: string;
+  reading_status_id: string;
+}
 
 interface CustomShelf {
   id: string;
@@ -25,20 +40,57 @@ interface CustomShelf {
 export function LibraryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [customShelves, setCustomShelves] = useState<CustomShelf[]>([]);
-  const [showLearningGoalsDialog, setShowLearningGoalsDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('want_to_consume');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contentFilter, setContentFilter] = useState<'all' | 'book' | 'audiobook' | 'article' | 'podcast'>('all');
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showCreateShelfDialog, setShowCreateShelfDialog] = useState(false);
-  const [library, setLibrary] = useState<{
-    savedForLater: ContentItem[];
-    learningGoals: ContentItem[];
-    completed: ContentItem[];
+  const [statusDialogConfig, setStatusDialogConfig] = useState<{
+    status: string;
+    title: string;
+  }>({ status: 'want_to_consume', title: 'Add to Library' });
+
+  // Reading status data
+  const [readingStatusItems, setReadingStatusItems] = useState<{
+    want_to_consume: ReadingStatusItem[];
+    consuming: ReadingStatusItem[];
+    completed: ReadingStatusItem[];
+    paused: ReadingStatusItem[];
+    dropped: ReadingStatusItem[];
   }>({
-    savedForLater: [],
-    learningGoals: [],
-    completed: []
+    want_to_consume: [],
+    consuming: [],
+    completed: [],
+    paused: [],
+    dropped: []
   });
+
+  // Custom shelves
+  const [customShelves, setCustomShelves] = useState<CustomShelf[]>([]);
+
+  // Check if we should open learning goals dialog from URL params
+  useEffect(() => {
+    const openLearningGoals = searchParams.get('openLearningGoals');
+    if (openLearningGoals === 'true') {
+      setStatusDialogConfig({
+        status: 'want_to_consume',
+        title: 'Add to Learning Goals'
+      });
+      setShowStatusDialog(true);
+      
+      // Clean up URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('openLearningGoals');
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}?${newSearchParams.toString()}`
+      );
+    }
+  }, [searchParams]);
 
   const loadLibrary = async () => {
     if (!user) {
@@ -50,30 +102,29 @@ export function LibraryPage() {
       setLoading(true);
       setError(null);
 
-      // Get all bookmarks
-      const { data: bookmarks, error: bookmarksError } = await supabase
-        .from('bookmarks')
-        .select('content_id, content_type, created_at')
-        .eq('user_id', user.id);
+      // Get all reading status items for the user
+      const { data: statusData, error: statusError } = await supabase
+        .from('reading_status')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
 
-      if (bookmarksError) throw bookmarksError;
+      if (statusError) throw statusError;
 
-      console.log(`Found ${bookmarks?.length || 0} bookmarks`);
+      console.log(`Found ${statusData?.length || 0} reading status items`);
 
-      // Get content details for each bookmark
-      const contentItems: ContentItem[] = [];
-      const processedItems = new Set<string>(); // Track processed items to avoid duplicates
+      // Get content details for each status item
+      const statusItems: ReadingStatusItem[] = [];
+      const processedItems = new Set<string>();
 
-      // Process bookmarks in batches to avoid too many parallel requests
-      const bookmarkBatches = chunk(bookmarks || [], 10);
+      // Process status items in batches
+      const statusBatches = chunk(statusData || [], 10);
       
-      for (const batch of bookmarkBatches) {
-        const batchPromises = batch.map(async (bookmark) => {
+      for (const batch of statusBatches) {
+        const batchPromises = batch.map(async (statusItem) => {
           try {
-            // Create a unique key for this item to avoid duplicates
-            const itemKey = `${bookmark.content_type}-${bookmark.content_id}`;
+            const itemKey = `${statusItem.content_type}-${statusItem.content_id}`;
             
-            // Skip if we've already processed this item
             if (processedItems.has(itemKey)) {
               return;
             }
@@ -84,17 +135,16 @@ export function LibraryPage() {
             let authorData;
             
             // Get content details based on type
-            if (bookmark.content_type === 'book') {
+            if (statusItem.content_type === 'book') {
               const { data: book } = await supabase
                 .from('books')
                 .select('title, description, cover_url, author_id, category, view_count, created_at')
-                .eq('id', bookmark.content_id)
+                .eq('id', statusItem.content_id)
                 .single();
                 
               if (book) {
                 contentData = book;
                 
-                // Get author details
                 const { data: author } = await supabase
                   .from('profiles')
                   .select('id, name, username, avatar_url')
@@ -104,17 +154,16 @@ export function LibraryPage() {
                 authorData = author;
               }
             } 
-            else if (bookmark.content_type === 'audiobook') {
+            else if (statusItem.content_type === 'audiobook') {
               const { data: audiobook } = await supabase
                 .from('audiobooks')
                 .select('title, description, cover_url, author_id, category, view_count, created_at')
-                .eq('id', bookmark.content_id)
+                .eq('id', statusItem.content_id)
                 .single();
                 
               if (audiobook) {
                 contentData = audiobook;
                 
-                // Get author details
                 const { data: author } = await supabase
                   .from('profiles')
                   .select('id, name, username, avatar_url')
@@ -124,17 +173,16 @@ export function LibraryPage() {
                 authorData = author;
               }
             }
-            else if (bookmark.content_type === 'article') {
+            else if (statusItem.content_type === 'article') {
               const { data: article } = await supabase
                 .from('articles')
                 .select('title, excerpt, cover_url, author_id, category, view_count, created_at')
-                .eq('id', bookmark.content_id)
+                .eq('id', statusItem.content_id)
                 .single();
                 
               if (article) {
                 contentData = article;
                 
-                // Get author details
                 const { data: author } = await supabase
                   .from('profiles')
                   .select('id, name, username, avatar_url')
@@ -144,17 +192,16 @@ export function LibraryPage() {
                 authorData = author;
               }
             }
-            else if (bookmark.content_type === 'podcast') {
+            else if (statusItem.content_type === 'podcast') {
               const { data: podcast } = await supabase
                 .from('podcast_episodes')
                 .select('title, description, cover_url, author_id, category, view_count, created_at, duration')
-                .eq('id', bookmark.content_id)
+                .eq('id', statusItem.content_id)
                 .single();
                 
               if (podcast) {
                 contentData = podcast;
                 
-                // Get author details
                 const { data: author } = await supabase
                   .from('profiles')
                   .select('id, name, username, avatar_url')
@@ -165,16 +212,15 @@ export function LibraryPage() {
               }
             }
             
-            // If we have content data, create a ContentItem
             if (contentData && authorData) {
-              contentItems.push({
-                id: bookmark.content_id,
-                type: bookmark.content_type as any,
+              statusItems.push({
+                id: statusItem.content_id,
+                type: statusItem.content_type as any,
                 title: contentData.title,
-                thumbnail: contentData.cover_url || `https://source.unsplash.com/random/800x600?${bookmark.content_type}&sig=${bookmark.content_id}`,
-                duration: contentData.duration || '5 min read',
+                thumbnail: contentData.cover_url || `https://source.unsplash.com/random/800x600?${statusItem.content_type}&sig=${statusItem.content_id}`,
+                duration: contentData.duration || (statusItem.content_type === 'article' ? '5 min read' : '30 min'),
                 views: contentData.view_count || 0,
-                createdAt: contentData.created_at || bookmark.created_at,
+                createdAt: contentData.created_at,
                 creator: {
                   id: authorData.id,
                   name: authorData.name || authorData.username || 'Unknown Author',
@@ -182,37 +228,33 @@ export function LibraryPage() {
                   followers: 0
                 },
                 category: contentData.category,
-                bookmarked: true
+                status: statusItem.status,
+                progress: statusItem.progress,
+                started_at: statusItem.started_at,
+                completed_at: statusItem.completed_at,
+                reading_status_id: statusItem.id
               });
             }
           } catch (error) {
-            console.error(`Error processing bookmark ${bookmark.content_id}:`, error);
+            console.error(`Error processing status item ${statusItem.content_id}:`, error);
           }
         });
         
         await Promise.all(batchPromises);
       }
 
-      console.log(`Processed ${contentItems.length} content items`);
+      // Group items by status
+      const groupedItems = {
+        want_to_consume: statusItems.filter(item => item.status === 'want_to_consume'),
+        consuming: statusItems.filter(item => item.status === 'consuming'),
+        completed: statusItems.filter(item => item.status === 'completed'),
+        paused: statusItems.filter(item => item.status === 'paused'),
+        dropped: statusItems.filter(item => item.status === 'dropped')
+      };
 
-      // Group content into shelves
-      const savedForLater = contentItems.filter(item => item.category !== 'education');
-      const learningGoals = contentItems.filter(item => item.category === 'education');
-      
-      // For demo purposes, randomly assign some items as completed
-      // In a real app, this would come from the database
-      const completed = contentItems.filter(item => 
-        (item.type === 'ebook' || item.type === 'audiobook') && 
-        Math.random() > 0.7 // Randomly mark some as completed for demo
-      );
+      setReadingStatusItems(groupedItems);
 
-      setLibrary({
-        savedForLater,
-        learningGoals,
-        completed
-      });
-
-      // Load custom shelves
+      // Load custom shelves (keeping existing functionality)
       const { data: shelves, error: shelvesError } = await supabase
         .from('custom_shelves')
         .select(`
@@ -229,12 +271,11 @@ export function LibraryPage() {
 
       if (shelvesError) throw shelvesError;
 
-      // Map shelf items to content
       const customShelvesWithItems = (shelves || []).map(shelf => ({
         id: shelf.id,
         name: shelf.name,
         description: shelf.description,
-        items: contentItems.filter(item => 
+        items: statusItems.filter(item => 
           shelf.shelf_items?.some(si => 
             si.content_id === item.id && si.content_type === item.type
           )
@@ -263,77 +304,99 @@ export function LibraryPage() {
     loadLibrary();
   }, [user]);
 
-  const handleAddToSavedForLater = () => {
-    // Redirect to home page to explore content
-    navigate('/?shelf=savedForLater');
-  };
-
-  const handleAddToLearningGoals = () => {
-    // Open learning goals dialog
-    setShowLearningGoalsDialog(true);
-  };
-
-  const handleAddToShelf = async (shelfId: string) => {
-    // Redirect to home page with shelf parameter
-    navigate(`/?shelf=${shelfId}`);
-  };
-
-  const handleAddBookToLearningGoals = async (book: any) => {
+  const handleAddToStatus = async (item: ContentItem, status: string) => {
     if (!user) return;
 
     try {
-      // Add the book to bookmarks with category=education to mark it as a learning goal
-      const { error: bookmarkError } = await supabase
-        .from('bookmarks')
-        .insert({
+      // Add or update reading status
+      const { error } = await supabase
+        .from('reading_status')
+        .upsert({
           user_id: user.id,
-          content_id: book.id,
-          content_type: book.type
+          content_id: item.id,
+          content_type: item.type,
+          status: status,
+          progress: status === 'completed' ? 100 : 0,
+          started_at: status === 'consuming' ? new Date().toISOString() : null,
+          completed_at: status === 'completed' ? new Date().toISOString() : null
         });
-        
-      if (bookmarkError) throw bookmarkError;
 
-      // If the book is from the database, update its category to 'education'
-      if (!book.id.startsWith('pop-')) {
-        const table = book.type === 'audiobook' ? 'audiobooks' : 'books';
-        const { error: updateError } = await supabase
-          .from(table)
-          .update({ category: 'education' })
-          .eq('id', book.id);
-          
-        if (updateError) {
-          console.warn(`Could not update ${table} category:`, updateError);
-        }
-      }
+      if (error) throw error;
 
-      // Create a mock content item for the book
-      const newBook: ContentItem = {
-        id: book.id,
-        type: book.type === 'audiobook' ? 'audiobook' : 'ebook',
-        title: book.title,
-        thumbnail: book.cover,
-        duration: 'Learning Goal',
-        views: 0,
-        createdAt: new Date().toISOString(),
-        creator: {
-          id: 'author',
-          name: book.author,
-          avatar: `https://source.unsplash.com/random/100x100?author&sig=${book.id}`
-        },
-        category: 'education',
-        bookmarked: true
-      };
-
-      // Add to learning goals shelf in UI
-      setLibrary(prev => ({
-        ...prev,
-        learningGoals: [newBook, ...prev.learningGoals]
-      }));
-
-      // Refresh the library to show the new book
+      // Reload library to show updated data
       loadLibrary();
     } catch (error) {
-      console.error('Error adding book to learning goals:', error);
+      console.error('Error adding to status:', error);
+    }
+  };
+
+  const handleStatusChange = async (item: ReadingStatusItem, newStatus: string) => {
+    if (!user) return;
+
+    try {
+      const updateData: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+
+      if (newStatus === 'consuming' && item.status === 'want_to_consume') {
+        updateData.started_at = new Date().toISOString();
+      }
+
+      if (newStatus === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+        updateData.progress = 100;
+      }
+
+      const { error } = await supabase
+        .from('reading_status')
+        .update(updateData)
+        .eq('id', item.reading_status_id);
+
+      if (error) throw error;
+
+      // Update local state
+      setReadingStatusItems(prev => {
+        const newItems = { ...prev };
+        
+        // Remove from old status
+        Object.keys(newItems).forEach(status => {
+          newItems[status as keyof typeof newItems] = newItems[status as keyof typeof newItems].filter(
+            i => i.reading_status_id !== item.reading_status_id
+          );
+        });
+        
+        // Add to new status
+        const updatedItem = { ...item, status: newStatus, progress: newStatus === 'completed' ? 100 : item.progress };
+        newItems[newStatus as keyof typeof newItems].push(updatedItem);
+        
+        return newItems;
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  const handleRemoveFromStatus = async (item: ReadingStatusItem) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('reading_status')
+        .delete()
+        .eq('id', item.reading_status_id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setReadingStatusItems(prev => ({
+        ...prev,
+        [item.status]: prev[item.status as keyof typeof prev].filter(
+          i => i.reading_status_id !== item.reading_status_id
+        )
+      }));
+    } catch (error) {
+      console.error('Error removing from status:', error);
     }
   };
 
@@ -341,7 +404,6 @@ export function LibraryPage() {
     if (!user) return;
 
     try {
-      // Create new shelf in database
       const { data, error } = await supabase
         .from('custom_shelves')
         .insert({
@@ -354,7 +416,6 @@ export function LibraryPage() {
 
       if (error) throw error;
 
-      // Add new shelf to state
       setCustomShelves(prev => [
         ...prev,
         {
@@ -371,91 +432,117 @@ export function LibraryPage() {
     }
   };
 
-  const handleRemoveShelf = (shelfId: string) => async () => {
-    if (!user) return;
-
-    try {
-      // Delete the shelf from the database
-      const { error } = await supabase
-        .from('custom_shelves')
-        .delete()
-        .eq('id', shelfId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Remove the shelf from state
-      setCustomShelves(prev => prev.filter(shelf => shelf.id !== shelfId));
-    } catch (error) {
-      console.error('Error removing shelf:', error);
-      throw error;
+  const handleContentClick = (item: ReadingStatusItem) => {
+    switch (item.type) {
+      case 'article':
+        navigate(`/reader/article-${item.id}`);
+        break;
+      case 'book':
+        navigate(`/reader/book-${item.id}`);
+        break;
+      case 'audiobook':
+      case 'podcast':
+        navigate(`/player/${item.type}-${item.id}`);
+        break;
     }
   };
 
-  // Handle removing an item from a shelf
-  const handleRemoveItem = async (shelfType: 'savedForLater' | 'learningGoals' | 'completed' | string, item: ContentItem) => {
-    if (!user) return;
-    
-    try {
-      // Update the local state immediately for better UX
-      if (shelfType === 'savedForLater') {
-        setLibrary(prev => ({
-          ...prev,
-          savedForLater: prev.savedForLater.filter(i => !(i.id === item.id && i.type === item.type))
-        }));
-      } else if (shelfType === 'learningGoals') {
-        setLibrary(prev => ({
-          ...prev,
-          learningGoals: prev.learningGoals.filter(i => !(i.id === item.id && i.type === item.type))
-        }));
-      } else if (shelfType === 'completed') {
-        setLibrary(prev => ({
-          ...prev,
-          completed: prev.completed.filter(i => !(i.id === item.id && i.type === item.type))
-        }));
-      } else {
-        // For custom shelves
-        setCustomShelves(prev => 
-          prev.map(shelf => 
-            shelf.id === shelfType
-              ? { ...shelf, items: shelf.items.filter(i => !(i.id === item.id && i.type === item.type)) }
-              : shelf
-          )
-        );
-      }
-
-      // Determine which table to delete from based on the shelf type
-      if (shelfType === 'savedForLater' || shelfType === 'learningGoals') {
-        // Delete from bookmarks
-        const { error: deleteError } = await supabase
-          .from('bookmarks')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('content_id', item.id)
-          .eq('content_type', item.type);
-          
-        if (deleteError) throw deleteError;
-      } else if (shelfType === 'completed') {
-        // For completed items, we would need to update their status
-        // This is a placeholder for actual implementation
-        console.log("Removing from completed shelf is not implemented yet");
-      } else {
-        // For custom shelves, delete from shelf_items
-        const { error: deleteError } = await supabase
-          .from('shelf_items')
-          .delete()
-          .eq('content_id', item.id)
-          .eq('content_type', item.type)
-          .eq('shelf_id', shelfType);
-            
-        if (deleteError) throw deleteError;
-      }
-    } catch (error) {
-      console.error('Error removing item:', error);
-      // Revert the state change if there was an error
-      loadLibrary();
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return 'Want to Experience';
+      case 'consuming':
+        return 'Currently Experiencing';
+      case 'completed':
+        return 'Experienced';
+      case 'paused':
+        return 'Paused';
+      case 'dropped':
+        return 'Dropped';
+      default:
+        return status;
     }
   };
+
+  const getStatusDescription = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return 'Content you plan to read or listen to';
+      case 'consuming':
+        return 'Content you are actively reading or listening to';
+      case 'completed':
+        return 'Content you have finished';
+      case 'paused':
+        return 'Content you have temporarily stopped';
+      case 'dropped':
+        return 'Content you decided not to finish';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return <Target className="w-6 h-6 text-primary" />;
+      case 'consuming':
+        return <Play className="w-6 h-6 text-primary" />;
+      case 'completed':
+        return <CheckCircle className="w-6 h-6 text-primary" />;
+      case 'paused':
+        return <Pause className="w-6 h-6 text-primary" />;
+      case 'dropped':
+        return <Eye className="w-6 h-6 text-primary" />;
+      default:
+        return <BookOpen className="w-6 h-6 text-primary" />;
+    }
+  };
+
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case 'audiobook':
+      case 'podcast':
+        return <Headphones className="w-4 h-4" />;
+      default:
+        return <BookOpen className="w-4 h-4" />;
+    }
+  };
+
+  const getActionLabel = (type: string) => {
+    switch (type) {
+      case 'audiobook':
+      case 'podcast':
+        return 'Listen';
+      default:
+        return 'Read';
+    }
+  };
+
+  // Filter items based on search and content type
+  const getFilteredItems = (items: ReadingStatusItem[]) => {
+    let filtered = items;
+
+    if (contentFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === contentFilter);
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.creator.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  const tabs = [
+    { id: 'want_to_consume', label: 'Want to Experience', count: readingStatusItems.want_to_consume.length },
+    { id: 'consuming', label: 'Currently Experiencing', count: readingStatusItems.consuming.length },
+    { id: 'completed', label: 'Experienced', count: readingStatusItems.completed.length },
+    { id: 'paused', label: 'Paused', count: readingStatusItems.paused.length },
+    { id: 'dropped', label: 'Dropped', count: readingStatusItems.dropped.length }
+  ];
 
   if (!user) {
     return (
@@ -483,80 +570,327 @@ export function LibraryPage() {
     );
   }
 
+  const currentItems = getFilteredItems(readingStatusItems[activeTab as keyof typeof readingStatusItems]);
+
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Library</h1>
           <p className="text-muted-foreground">
-            Your personal collection of learning resources
+            Track your learning journey across all content types
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateShelfDialog(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Shelf</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setStatusDialogConfig({
+                status: 'want_to_consume',
+                title: 'Add to Library'
+              });
+              setShowStatusDialog(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Content</span>
+          </button>
+          <button
+            onClick={() => setShowCreateShelfDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-accent transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Shelf</span>
+          </button>
+        </div>
       </div>
 
-      {/* Default Shelves */}
-      <div className="grid grid-cols-1 gap-12">
-        <LibraryShelf
-          title="Saved for Later"
-          description="Articles, e-books, and podcasts you've saved from our platform"
-          items={library.savedForLater}
-          icon={<Clock className="w-6 h-6 text-primary" />}
-          loading={loading}
-          onAddItem={handleAddToSavedForLater}
-          onRemoveItem={(item) => handleRemoveItem('savedForLater', item)}
-        />
+      {/* Tabs */}
+      <div className="border-b">
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-        <LibraryShelf
-          title="2025 Learning Goals"
-          description="Content aligned with your learning objectives for 2025"
-          items={library.learningGoals}
-          icon={<Target className="w-6 h-6 text-primary" />}
-          loading={loading}
-          onAddItem={handleAddToLearningGoals}
-          onRemoveItem={(item) => handleRemoveItem('learningGoals', item)}
-        />
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search your library..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-10 pl-9 pr-4 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setContentFilter('all')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                contentFilter === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setContentFilter('book')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'book'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <BookOpen className="w-3 h-3" />
+              Books
+            </button>
+            <button
+              onClick={() => setContentFilter('audiobook')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'audiobook'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <Headphones className="w-3 h-3" />
+              Audiobooks
+            </button>
+            <button
+              onClick={() => setContentFilter('article')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'article'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <BookOpen className="w-3 h-3" />
+              Articles
+            </button>
+            <button
+              onClick={() => setContentFilter('podcast')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'podcast'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <Headphones className="w-3 h-3" />
+              Podcasts
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <LibraryShelf
-          title="Completed"
-          description="Content you've finished"
-          items={library.completed}
-          icon={<CheckCircle className="w-6 h-6 text-primary" />}
-          canAddItems={false}
-          loading={loading}
-          onRemoveItem={(item) => handleRemoveItem('completed', item)}
-        />
+      {/* Content */}
+      <div className="space-y-6">
+        {/* Current Tab Content */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              {getStatusIcon(activeTab)}
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">{getStatusLabel(activeTab)}</h2>
+              <p className="text-sm text-muted-foreground">{getStatusDescription(activeTab)}</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] bg-muted rounded-lg mb-2" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-1" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : currentItems.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {currentItems.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="group space-y-3">
+                  {/* Thumbnail */}
+                  <div 
+                    onClick={() => handleContentClick(item)}
+                    className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.src = `https://source.unsplash.com/random/400x600?${item.type}&sig=${item.id}`;
+                      }}
+                    />
+                    
+                    {/* Content type badge */}
+                    <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-background/90 text-xs font-medium flex items-center gap-1 shadow-sm">
+                      {getContentIcon(item.type)}
+                      <span className="capitalize">{item.type}</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    {item.progress > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/50">
+                        <div 
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${item.progress}%` }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Play button for audio content */}
+                    {(item.type === 'audiobook' || item.type === 'podcast') && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status dropdown */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="relative">
+                        <button className="w-8 h-8 rounded-full bg-background/90 flex items-center justify-center hover:bg-background transition-colors">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-background border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <div className="p-2 space-y-1">
+                            {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
+                              <button
+                                key={status}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(item, status);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                  item.status === status
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'hover:bg-primary hover:text-primary-foreground'
+                                }`}
+                              >
+                                {getStatusLabel(status)}
+                              </button>
+                            ))}
+                            <div className="border-t pt-1 mt-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromStatus(item);
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                              >
+                                Remove from Library
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content info */}
+                  <div className="space-y-1">
+                    <h3 className="font-medium line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {item.creator.name}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                        <span>4.5</span>
+                      </div>
+                      {item.progress > 0 && (
+                        <span>{item.progress}% complete</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                {getStatusIcon(activeTab)}
+              </div>
+              <h3 className="text-lg font-medium mb-2">No content in {getStatusLabel(activeTab).toLowerCase()}</h3>
+              <p className="text-muted-foreground mb-6">
+                {getStatusDescription(activeTab)}
+              </p>
+              <button
+                onClick={() => {
+                  setStatusDialogConfig({
+                    status: activeTab,
+                    title: `Add to ${getStatusLabel(activeTab)}`
+                  });
+                  setShowStatusDialog(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Content
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Custom Shelves */}
-        {customShelves.map(shelf => (
-          <LibraryShelf
-            key={shelf.id}
-            title={shelf.name}
-            description={shelf.description}
-            items={shelf.items}
-            icon={<BookOpen className="w-6 h-6 text-primary" />}
-            onAddItem={() => handleAddToShelf(shelf.id)}
-            loading={loading}
-            isCustomShelf={true}
-            onRemoveShelf={handleRemoveShelf(shelf.id)}
-            shelfId={shelf.id}
-            onRemoveItem={(item) => handleRemoveItem(shelf.id, item)}
-          />
-        ))}
+        {customShelves.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Custom Shelves</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customShelves.map(shelf => (
+                <div key={shelf.id} className="bg-card border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">{shelf.name}</h3>
+                  {shelf.description && (
+                    <p className="text-sm text-muted-foreground mb-3">{shelf.description}</p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {shelf.items.length} {shelf.items.length === 1 ? 'item' : 'items'}
+                    </span>
+                    <button className="text-sm text-primary hover:underline">
+                      View Shelf
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Learning Goals Dialog */}
-      {showLearningGoalsDialog && (
-        <LearningGoalsDialog 
-          onClose={() => setShowLearningGoalsDialog(false)}
-          onAddGoal={handleAddBookToLearningGoals}
+      {/* Reading Status Dialog */}
+      {showStatusDialog && (
+        <ReadingStatusDialog
+          onClose={() => setShowStatusDialog(false)}
+          onAddToStatus={handleAddToStatus}
+          defaultStatus={statusDialogConfig.status}
+          title={statusDialogConfig.title}
         />
       )}
 
