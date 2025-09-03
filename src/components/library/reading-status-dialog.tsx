@@ -18,7 +18,7 @@ interface ContentItem {
 
 interface ReadingStatusDialogProps {
   onClose: () => void;
-  onAddToStatus: (item: ContentItem, status: string) => void;
+  onAddToStatus: (item: ContentItem, status: string) => Promise<void>;
   defaultStatus?: string;
   title?: string;
 }
@@ -519,3 +519,5 @@ export function ReadingStatusDialog({
     </div>
   );
 }
+
+export { ReadingStatusDialog }
