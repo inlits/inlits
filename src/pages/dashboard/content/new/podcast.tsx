@@ -70,8 +70,14 @@ export function NewPodcastPage() {
       const title = formData.get('title') as string;
       const description = formData.get('description') as string;
       const duration = formData.get('duration') as string;
-      const category = formData.get('category') as string;
+      const categories = formData.getAll('categories') as string[];
       const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
+
+      // Validate categories
+      if (categories.length === 0) {
+        setError('At least one category is required');
+        return;
+      }
 
       // Upload cover image if exists
       let coverUrl = '';
@@ -114,7 +120,8 @@ export function NewPodcastPage() {
         .insert({
           title,
           description,
-          category,
+          category: categories[0] || null, // Keep first category for backward compatibility
+          categories,
           cover_url: coverUrl,
           audio_url: audioUrl,
           duration,
@@ -255,20 +262,28 @@ export function NewPodcastPage() {
 
         {/* Category */}
         <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
-          <select
-            id="category"
-            name="category"
-            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            required
-          >
-            <option value="">Select Category</option>
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+          <Label>Categories</Label>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {CATEGORIES.map((category) => (
+                <label
+                  key={category}
+                  className="flex items-center gap-2 p-2 text-sm cursor-pointer transition-colors hover:bg-accent rounded"
+                >
+                  <input
+                    type="checkbox"
+                    name="categories"
+                    value={category}
+                    className="rounded border-input"
+                  />
+                  <span className="text-xs">{category}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select multiple categories that best describe your podcast
+            </p>
+          </div>
         </div>
 
         {/* Actions */}

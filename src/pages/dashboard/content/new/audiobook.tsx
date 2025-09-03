@@ -62,6 +62,7 @@ export function NewAudiobookPage() {
   const [selectedStatus, setSelectedStatus] = useState('draft');
   const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isFullBook, setIsFullBook] = useState(true);
   const [series, setSeries] = useState<Series[]>([]);
   const [showSeriesDialog, setShowSeriesDialog] = useState(false);
@@ -84,6 +85,7 @@ export function NewAudiobookPage() {
       setPrice(editItem.price?.toString() || '0');
       setNarrator(editItem.narrator || '');
       setSelectedCategory(editItem.category || '');
+      setSelectedCategories(editItem.categories || [editItem.category].filter(Boolean) || []);
       setIsFullBook(editItem.isFullBook ?? true);
       
       if (editItem.cover_url) {
@@ -295,7 +297,8 @@ export function NewAudiobookPage() {
     }
 
     if (!selectedCategory) {
-      setError('Category is required');
+    if (selectedCategories.length === 0) {
+      setError('At least one category is required');
       return;
     }
 
@@ -343,7 +346,8 @@ export function NewAudiobookPage() {
         author_id: profile.id,
         status: selectedStatus,
         series_id: selectedSeries?.id,
-        category: selectedCategory,
+        category: selectedCategories[0] || null, // Keep first category for backward compatibility
+        categories: selectedCategories,
         is_full_book: isFullBook,
         updated_at: new Date().toISOString()
       };
@@ -654,14 +658,21 @@ export function NewAudiobookPage() {
 
           {/* Category Dropdown */}
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>Categories</Label>
             <div className="relative" data-dropdown>
               <button
                 type="button"
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                 className="w-full h-10 px-3 text-left flex items-center justify-between rounded-md border border-input bg-background text-sm transition-colors hover:bg-accent"
               >
-                <span>{selectedCategory || 'Select Category'}</span>
+                <span>
+                  {selectedCategories.length === 0 
+                    ? 'Select Categories' 
+                    : selectedCategories.length === 1 
+                      ? selectedCategories[0]
+                      : `${selectedCategories.length} categories selected`
+                  }
+                </span>
                 <ChevronDown
                   className={`w-4 h-4 transition-transform duration-200 ${
                     showCategoryDropdown ? 'rotate-180' : ''
@@ -670,22 +681,43 @@ export function NewAudiobookPage() {
               </button>
 
               {showCategoryDropdown && (
-                <div className="absolute z-50 w-full py-1 mt-1 duration-100 border rounded-md shadow-lg bg-background animate-in fade-in-0 zoom-in-95 max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full py-2 mt-1 duration-100 border rounded-md shadow-lg bg-background animate-in fade-in-0 zoom-in-95 max-h-60 overflow-y-auto">
+                  <div className="px-3 py-2 text-xs text-muted-foreground border-b">
+                    Select multiple categories (recommended: 2-3)
+                  </div>
                   {CATEGORIES.map((category) => (
-                    <button
+                    <label
                       key={category}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory(category);
-                        setShowCategoryDropdown(false);
-                      }}
-                      className={`w-full px-3 py-1.5 text-sm text-left transition-colors hover:bg-accent rounded-md ${
-                        selectedCategory === category ? 'bg-primary/10 text-primary' : ''
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-accent ${
+                        selectedCategories.includes(category) ? 'bg-primary/10 text-primary' : ''
                       }`}
                     >
-                      {category}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(category)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories(prev => [...prev, category]);
+                          } else {
+                            setSelectedCategories(prev => prev.filter(c => c !== category));
+                          }
+                        }}
+                        className="rounded border-input"
+                      />
+                      <span>{category}</span>
+                    </label>
                   ))}
+                  <div className="px-3 py-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategories([]);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
