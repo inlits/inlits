@@ -166,7 +166,7 @@ export function Library() {
               title,
               cover_url,
               view_count,
-              ${bookmark.content_type === 'audiobook' || bookmark.content_type === 'podcast' ? 'duration,' : ''}
+              ${bookmark.content_type === 'podcast' ? 'duration,' : ''}
               profiles!${tableName}_author_id_fkey(username)
             `)
             .eq('id', bookmark.content_id)
