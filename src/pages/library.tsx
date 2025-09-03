@@ -1020,12 +1020,6 @@ export function LibraryPage() {
                       setShowShelfContent(true);
                     }}
                   >
-                    className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Navigate to home page with shelf parameter for adding content
-                          navigate(`/?shelf=${shelf.id}`);
-                        }}
                         className="p-1 hover:bg-primary/10 rounded-full transition-colors"
                         title="Add content to shelf"
                       >
