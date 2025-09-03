@@ -400,18 +400,20 @@ export function LibraryPage() {
       return;
     }
 
-    // Normal navigation
-    switch (item.type) {
-      case 'article':
-        navigate(`/reader/article-${item.id}`);
-        break;
-      case 'book':
-        navigate(`/reader/book-${item.id}`);
-        break;
-      case 'audiobook':
-      case 'podcast':
-        navigate(`/player/${item.type}-${item.id}`);
-        break;
+    // Only navigate if NOT in add to shelf mode
+    if (!activeShelfId) {
+      switch (item.type) {
+        case 'article':
+          navigate(`/reader/article-${item.id}`);
+          break;
+        case 'book':
+          navigate(`/reader/book-${item.id}`);
+          break;
+        case 'audiobook':
+        case 'podcast':
+          navigate(`/player/${item.type}-${item.id}`);
+          break;
+      }
     }
   };
 
@@ -706,16 +708,14 @@ export function LibraryPage() {
             className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm lg:text-base"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Content</span>
-            <span className="sm:hidden">Add</span>
+            <span>Add Content</span>
           </button>
           <button
             onClick={() => setShowCreateShelfDialog(true)}
             className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg border hover:bg-accent transition-colors text-sm lg:text-base"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Create Shelf</span>
-            <span className="sm:hidden">Shelf</span>
+            <span>Create Shelf</span>
           </button>
         </div>
       </div>
@@ -779,7 +779,7 @@ export function LibraryPage() {
               }`}
             >
               <BookOpen className="w-3 h-3" />
-              <span className="hidden sm:inline">Books</span>
+              <span>Books</span>
             </button>
             <button
               onClick={() => setContentFilter('audiobook')}
@@ -790,7 +790,7 @@ export function LibraryPage() {
               }`}
             >
               <Headphones className="w-3 h-3" />
-              <span className="hidden sm:inline">Audiobooks</span>
+              <span>Audiobooks</span>
             </button>
             <button
               onClick={() => setContentFilter('article')}
@@ -801,7 +801,7 @@ export function LibraryPage() {
               }`}
             >
               <BookOpen className="w-3 h-3" />
-              <span className="hidden sm:inline">Articles</span>
+              <span>Articles</span>
             </button>
             <button
               onClick={() => setContentFilter('podcast')}
@@ -812,7 +812,7 @@ export function LibraryPage() {
               }`}
             >
               <Headphones className="w-3 h-3" />
-              <span className="hidden sm:inline">Podcasts</span>
+              <span>Podcasts</span>
             </button>
           </div>
         </div>
@@ -906,47 +906,47 @@ export function LibraryPage() {
 
                       {/* Status dropdown - Fixed visibility */}
                       {!activeShelfId && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="relative">
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-lg border"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-popover/95 backdrop-blur-sm border rounded-lg shadow-xl z-[60] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-                            <div className="p-2 space-y-1">
-                              {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
-                                <button
-                                  key={status}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStatusChange(item, status);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-primary hover:text-primary-foreground ${
-                                    item.status === status
-                                      ? 'bg-primary text-primary-foreground'
-                                      : ''
-                                  }`}
-                                >
-                                  {getStatusLabel(status)}
-                                </button>
-                              ))}
-                              <div className="border-t pt-1 mt-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveFromStatus(item);
-                                  }}
-                                  className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
-                                >
-                                  Remove from Library
-                                </button>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <div className="relative">
+                            <button 
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-lg border"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-popover border rounded-lg shadow-xl z-[100] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                              <div className="p-2 space-y-1">
+                                {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
+                                  <button
+                                    key={status}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(item, status);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-primary hover:text-primary-foreground ${
+                                      item.status === status
+                                        ? 'bg-primary text-primary-foreground'
+                                        : ''
+                                    }`}
+                                  >
+                                    {getStatusLabel(status)}
+                                  </button>
+                                ))}
+                                <div className="border-t pt-1 mt-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveFromStatus(item);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                                  >
+                                    Remove from Library
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
                       )}
                     </div>
 
@@ -1020,21 +1020,11 @@ export function LibraryPage() {
                       setShowShelfContent(true);
                     }}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-medium">{shelf.name}</h3>
-                      <button
+                    className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Add content to this shelf
-                          const newSearchParams = new URLSearchParams(searchParams);
-                          newSearchParams.set('shelf', shelf.id);
-                          window.history.pushState(
-                            {},
-                            '',
-                            `${window.location.pathname}?${newSearchParams.toString()}`
-                          );
-                          setActiveShelfId(shelf.id);
-                          setActiveShelfName(shelf.name);
+                          // Navigate to home page with shelf parameter for adding content
+                          navigate(`/?shelf=${shelf.id}`);
                         }}
                         className="p-1 hover:bg-primary/10 rounded-full transition-colors"
                         title="Add content to shelf"
