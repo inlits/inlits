@@ -521,6 +521,7 @@ export function LibraryPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <span>Add Content</span>
+          </button>
         </div>
       </div>
 
