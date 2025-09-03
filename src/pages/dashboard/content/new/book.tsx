@@ -27,6 +27,7 @@ interface LocationState {
     status: string;
     price: number;
     category?: string;
+    categories?: string[];
     isFullBook?: boolean;
     file_url?: string;
     file_type?: string;
@@ -230,7 +231,6 @@ export function NewBookPage() {
       return;
     }
 
-    if (!selectedCategory) {
     if (selectedCategories.length === 0) {
       setError('At least one category is required');
       return;
