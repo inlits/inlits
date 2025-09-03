@@ -95,6 +95,22 @@ export function LibraryPage() {
     }
   }, [searchParams]);
 
+  // Check if we're in "add to shelf" mode
+  const addToShelfMode = searchParams.get('shelf');
+  const [activeShelfId, setActiveShelfId] = useState<string | null>(addToShelfMode);
+  const [activeShelfName, setActiveShelfName] = useState<string>('');
+
+  // Get shelf name when in add mode
+  useEffect(() => {
+    if (addToShelfMode && customShelves.length > 0) {
+      const shelf = customShelves.find(s => s.id === addToShelfMode);
+      if (shelf) {
+        setActiveShelfId(addToShelfMode);
+        setActiveShelfName(shelf.name);
+      }
+    }
+  }, [addToShelfMode, customShelves]);
+
   const loadLibrary = async () => {
     if (!user) {
       setLoading(false);
@@ -330,6 +346,72 @@ export function LibraryPage() {
       loadLibrary();
     } catch (error) {
       console.error('Error adding to status:', error);
+    }
+  };
+
+  const handleAddToShelf = async (contentId: string, contentType: string) => {
+    if (!user || !activeShelfId) return;
+
+    try {
+      const { error } = await supabase
+        .from('shelf_items')
+        .insert({
+          shelf_id: activeShelfId,
+          content_id: contentId,
+          content_type: contentType
+        });
+
+      if (error) throw error;
+
+      // Update the shelf in local state
+      setCustomShelves(prev => prev.map(shelf => {
+        if (shelf.id === activeShelfId) {
+          // Find the content item to add
+          const allItems = [
+            ...readingStatusItems.want_to_consume,
+            ...readingStatusItems.consuming,
+            ...readingStatusItems.completed,
+            ...readingStatusItems.paused,
+            ...readingStatusItems.dropped
+          ];
+          const contentItem = allItems.find(item => item.id === contentId && item.type === contentType);
+          
+          if (contentItem) {
+            return {
+              ...shelf,
+              items: [...shelf.items, contentItem]
+            };
+          }
+        }
+        return shelf;
+      }));
+
+      // Show success message or feedback
+      console.log('Added to shelf successfully');
+    } catch (error) {
+      console.error('Error adding to shelf:', error);
+    }
+  };
+
+  const handleContentClick = (item: ReadingStatusItem) => {
+    // If in add to shelf mode, add to shelf instead of navigating
+    if (activeShelfId) {
+      handleAddToShelf(item.id, item.type);
+      return;
+    }
+
+    // Normal navigation
+    switch (item.type) {
+      case 'article':
+        navigate(`/reader/article-${item.id}`);
+        break;
+      case 'book':
+        navigate(`/reader/book-${item.id}`);
+        break;
+      case 'audiobook':
+      case 'podcast':
+        navigate(`/player/${item.type}-${item.id}`);
+        break;
     }
   };
 
@@ -578,15 +660,56 @@ export function LibraryPage() {
 
   return (
     <div className="space-y-6">
+      {/* Add to Shelf Banner */}
+      {activeShelfId && (
+        <div className="bg-primary/10 border-l-4 border-primary p-4 rounded-lg">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 text-primary mt-0.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary">
+                  Adding content to "{activeShelfName}"
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Click on any content card to add it to this shelf
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const newSearchParams = new URLSearchParams(searchParams);
+                newSearchParams.delete('shelf');
+                window.history.replaceState(
+                  {},
+                  '',
+                  `${window.location.pathname}?${newSearchParams.toString()}`
+                );
+                setActiveShelfId(null);
+              }}
+              className="p-1 hover:bg-primary/10 rounded-full transition-colors"
+            >
+              <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Library</h1>
           <p className="text-muted-foreground">
             Track your learning journey across all content types
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button
             onClick={() => {
               setStatusDialogConfig({
@@ -595,37 +718,39 @@ export function LibraryPage() {
               });
               setShowStatusDialog(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm lg:text-base"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Content</span>
+            <span className="hidden sm:inline">Add Content</span>
+            <span className="sm:hidden">Add</span>
           </button>
           <button
             onClick={() => setShowCreateShelfDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-accent transition-colors"
+            className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg border hover:bg-accent transition-colors text-sm lg:text-base"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Shelf</span>
+            <span className="hidden sm:inline">Create Shelf</span>
+            <span className="sm:hidden">Shelf</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b">
+      <div className="border-b overflow-hidden">
         <div className="relative">
-          <div className="flex gap-2 md:gap-4 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-1 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <span>{tab.label}</span>
-                <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                <span className="truncate">{tab.label}</span>
+                <span className="bg-muted text-muted-foreground px-1.5 sm:px-2 py-0.5 rounded-full text-xs flex-shrink-0">
                   {tab.count}
                 </span>
               </button>
@@ -635,7 +760,7 @@ export function LibraryPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -647,12 +772,12 @@ export function LibraryPage() {
           />
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-hidden">
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide pb-1">
             <button
               onClick={() => setContentFilter('all')}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors whitespace-nowrap flex-shrink-0 ${
                 contentFilter === 'all'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-primary/10'
@@ -662,47 +787,47 @@ export function LibraryPage() {
             </button>
             <button
               onClick={() => setContentFilter('book')}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 contentFilter === 'book'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-primary/10'
               }`}
             >
               <BookOpen className="w-3 h-3" />
-              Books
+              <span className="hidden sm:inline">Books</span>
             </button>
             <button
               onClick={() => setContentFilter('audiobook')}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 contentFilter === 'audiobook'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-primary/10'
               }`}
             >
               <Headphones className="w-3 h-3" />
-              Audiobooks
+              <span className="hidden sm:inline">Audiobooks</span>
             </button>
             <button
               onClick={() => setContentFilter('article')}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 contentFilter === 'article'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-primary/10'
               }`}
             >
               <BookOpen className="w-3 h-3" />
-              Articles
+              <span className="hidden sm:inline">Articles</span>
             </button>
             <button
               onClick={() => setContentFilter('podcast')}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 contentFilter === 'podcast'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-primary/10'
               }`}
             >
               <Headphones className="w-3 h-3" />
-              Podcasts
+              <span className="hidden sm:inline">Podcasts</span>
             </button>
           </div>
         </div>
@@ -739,8 +864,16 @@ export function LibraryPage() {
                   <div key={`${item.type}-${item.id}`} className="group space-y-3">
                     {/* Thumbnail */}
                     <div 
-                      onClick={() => handleContentClick(item)}
-                      className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
+                      onClick={() => {
+                        if (activeShelfId) {
+                          handleAddToShelf(item.id, item.type);
+                        } else {
+                          handleContentClick(item);
+                        }
+                      }}
+                      className={`cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted ${
+                        activeShelfId ? 'ring-2 ring-primary/50 ring-offset-2' : ''
+                      }`}
                     >
                       <img
                         src={item.thumbnail}
@@ -757,6 +890,15 @@ export function LibraryPage() {
                         {getContentIcon(item.type)}
                         <span className="capitalize hidden sm:inline">{item.type}</span>
                       </div>
+
+                      {/* Add to shelf indicator */}
+                      {activeShelfId && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
+                            Click to Add
+                          </div>
+                        </div>
+                      )}
 
                       {/* Progress bar */}
                       {item.progress > 0 && (
@@ -778,15 +920,16 @@ export function LibraryPage() {
                       )}
 
                       {/* Status dropdown - Fixed visibility */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!activeShelfId && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="relative">
                           <button 
                             onClick={(e) => e.stopPropagation()}
-                            className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-sm border"
+                            className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-lg border"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-popover border rounded-lg shadow-xl z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-popover/95 backdrop-blur-sm border rounded-lg shadow-xl z-[60] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
                             <div className="p-2 space-y-1">
                               {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
                                 <button
@@ -795,10 +938,10 @@ export function LibraryPage() {
                                     e.stopPropagation();
                                     handleStatusChange(item, status);
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-primary hover:text-primary-foreground ${
                                     item.status === status
                                       ? 'bg-primary text-primary-foreground'
-                                      : 'hover:bg-primary hover:text-primary-foreground'
+                                      : ''
                                   }`}
                                 >
                                   {getStatusLabel(status)}
@@ -819,6 +962,7 @@ export function LibraryPage() {
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Content info */}
@@ -897,7 +1041,15 @@ export function LibraryPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           // Add content to this shelf
-                          window.location.href = `/?shelf=${shelf.id}`;
+                          const newSearchParams = new URLSearchParams(searchParams);
+                          newSearchParams.set('shelf', shelf.id);
+                          window.history.pushState(
+                            {},
+                            '',
+                            `${window.location.pathname}?${newSearchParams.toString()}`
+                          );
+                          setActiveShelfId(shelf.id);
+                          setActiveShelfName(shelf.name);
                         }}
                         className="p-1 hover:bg-primary/10 rounded-full transition-colors"
                         title="Add content to shelf"
