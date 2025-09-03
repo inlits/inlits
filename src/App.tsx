@@ -24,7 +24,7 @@ const ResetPasswordPage = React.lazy(() => import('./pages/auth/reset-password')
 const VerifyEmailPage = React.lazy(() => import('./pages/auth/verify-email').then(module => ({ default: module.VerifyEmailPage })));
 const QuickBitesPage = React.lazy(() => import('./pages/quick-bites').then(module => ({ default: module.QuickBitesPage })));
 const FollowedPage = React.lazy(() => import('./pages/followed').then(module => ({ default: module.FollowedPage })));
-const LibraryPage = React.lazy(() => import('./pages/library').then(module => ({ default: module.Library })));
+const LibraryPage = React.lazy(() => import('./pages/library').then(module => ({ default: module.LibraryPage })));
 const CommunityPage = React.lazy(() => import('./pages/community').then(module => ({ default: module.CommunityPage })));
 const HistoryPage = React.lazy(() => import('./pages/history').then(module => ({ default: module.HistoryPage })));
 const ProfilePage = React.lazy(() => import('./pages/profile/index').then(module => ({ default: module.ProfilePage })));

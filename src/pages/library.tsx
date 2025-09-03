@@ -1,665 +1,882 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, BookOpen, Headphones, FileText, Mic, Plus, Eye, Clock, CheckCircle, Pause, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
-import { ContentCard } from '../components/content/content-card';
-import { CreateShelfDialog } from '../components/library/create-shelf-dialog';
-import { LearningGoalsDialog } from '../components/library/learning-goals-dialog';
+import { 
+  BookOpen, 
+  Headphones, 
+  Play, 
+  Pause, 
+  Plus,
+  AlertCircle,
+  Clock,
+  Target,
+  CheckCircle,
+  Eye,
+  Star,
+  Filter,
+  Search,
+  MoreHorizontal
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ReadingStatusDialog } from '@/components/library/reading-status-dialog';
+import { CreateShelfDialog } from '@/components/library/create-shelf-dialog';
+import type { ContentItem } from '@/lib/types';
 
-interface LibraryItem {
-  id: string;
-  title: string;
-  author: string;
-  cover_url?: string;
-  content_type: 'book' | 'audiobook' | 'article' | 'podcast';
-  status: 'want_to_experience' | 'currently_experiencing' | 'experienced' | 'paused' | 'dropped';
-  progress?: number;
+interface ReadingStatusItem extends ContentItem {
+  status: string;
+  progress: number;
   started_at?: string;
   completed_at?: string;
-  duration?: string;
-  view_count?: number;
+  reading_status_id: string;
 }
 
 interface CustomShelf {
   id: string;
   name: string;
   description?: string;
-  items: LibraryItem[];
+  items: ContentItem[];
 }
 
-const statusConfig = {
-  want_to_experience: {
-    label: 'Want to Experience',
-    icon: Plus,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    description: 'Content you plan to consume'
-  },
-  currently_experiencing: {
-    label: 'Currently Experiencing',
-    icon: Eye,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    description: 'Content you are actively consuming'
-  },
-  experienced: {
-    label: 'Experienced',
-    icon: CheckCircle,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    description: 'Content you have completed'
-  },
-  paused: {
-    label: 'Paused',
-    icon: Pause,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
-    description: 'Content you have temporarily stopped'
-  },
-  dropped: {
-    label: 'Dropped',
-    icon: X,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50',
-    description: 'Content you decided not to finish'
-  }
-};
-
-const contentTypeIcons = {
-  book: BookOpen,
-  audiobook: Headphones,
-  article: FileText,
-  podcast: Mic
-};
-
-export function Library() {
+export function LibraryPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<keyof typeof statusConfig>('want_to_experience');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
-  const [customShelves, setCustomShelves] = useState<CustomShelf[]>([]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [showCreateShelf, setShowCreateShelf] = useState(false);
-  const [showLearningGoals, setShowLearningGoals] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('want_to_consume');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contentFilter, setContentFilter] = useState<'all' | 'book' | 'audiobook' | 'article' | 'podcast'>('all');
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showCreateShelfDialog, setShowCreateShelfDialog] = useState(false);
+  const [statusDialogConfig, setStatusDialogConfig] = useState<{
+    status: string;
+    title: string;
+  }>({ status: 'want_to_consume', title: 'Add to Library' });
 
+  // Reading status data
+  const [readingStatusItems, setReadingStatusItems] = useState<{
+    want_to_consume: ReadingStatusItem[];
+    consuming: ReadingStatusItem[];
+    completed: ReadingStatusItem[];
+    paused: ReadingStatusItem[];
+    dropped: ReadingStatusItem[];
+  }>({
+    want_to_consume: [],
+    consuming: [],
+    completed: [],
+    paused: [],
+    dropped: []
+  });
+
+  // Custom shelves
+  const [customShelves, setCustomShelves] = useState<CustomShelf[]>([]);
+
+  // Check if we should open learning goals dialog from URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('openLearningGoals') === 'true') {
-      setShowLearningGoals(true);
+    const openLearningGoals = searchParams.get('openLearningGoals');
+    if (openLearningGoals === 'true') {
+      setStatusDialogConfig({
+        status: 'want_to_consume',
+        title: 'Add to Learning Goals'
+      });
+      setShowStatusDialog(true);
+      
       // Clean up URL
-      window.history.replaceState({}, '', window.location.pathname);
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('openLearningGoals');
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}?${newSearchParams.toString()}`
+      );
     }
-    
-    if (user) {
-      loadLibrary();
-      loadCustomShelves();
-    }
-  }, [user]);
+  }, [searchParams]);
 
   const loadLibrary = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
+
+      // Get all reading status items for the user
+      const { data: statusData, error: statusError } = await supabase
+        .from('reading_status')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (statusError) throw statusError;
+
+      console.log(`Found ${statusData?.length || 0} reading status items`);
+
+      // Get content details for each status item
+      const statusItems: ReadingStatusItem[] = [];
+      const processedItems = new Set<string>();
+
+      // Process status items in batches
+      const statusBatches = chunk(statusData || [], 10);
       
-      // Load bookmarks as library items
-      const { data: bookmarks, error: bookmarksError } = await supabase
-        .from('bookmarks')
-        .select(`
-          content_id,
-          content_type,
-          created_at
-        `)
-        .eq('user_id', user.id);
-
-      if (bookmarksError) throw bookmarksError;
-
-      // Load content views to determine status and progress
-      const { data: views, error: viewsError } = await supabase
-        .from('content_views')
-        .select(`
-          content_id,
-          content_type,
-          progress,
-          viewed_at,
-          view_duration
-        `)
-        .eq('viewer_id', user.id);
-
-      if (viewsError) throw viewsError;
-
-      // Create a map of content views for quick lookup
-      const viewsMap = new Map();
-      views?.forEach(view => {
-        const key = `${view.content_id}-${view.content_type}`;
-        if (!viewsMap.has(key) || new Date(view.viewed_at) > new Date(viewsMap.get(key).viewed_at)) {
-          viewsMap.set(key, view);
-        }
-      });
-
-      // Load actual content details
-      const contentPromises = bookmarks?.map(async (bookmark) => {
-        let contentData = null;
-        let tableName = '';
-        
-        switch (bookmark.content_type) {
-          case 'book':
-            tableName = 'books';
-            break;
-          case 'audiobook':
-            tableName = 'audiobooks';
-            break;
-          case 'article':
-            tableName = 'articles';
-            break;
-          case 'podcast':
-            tableName = 'podcast_episodes';
-            break;
-        }
-
-        if (tableName) {
-          const { data } = await supabase
-            .from(tableName)
-            .select(`
-              id,
-              title,
-              cover_url,
-              view_count,
-              ${bookmark.content_type === 'podcast' ? 'duration,' : ''}
-              profiles!${tableName}_author_id_fkey(username)
-            `)
-            .eq('id', bookmark.content_id)
-            .eq('status', 'published')
-            .single();
-
-          contentData = data;
-        }
-
-        if (!contentData) return null;
-
-        const viewKey = `${bookmark.content_id}-${bookmark.content_type}`;
-        const viewData = viewsMap.get(viewKey);
-        
-        // Determine status based on progress and views
-        let status: LibraryItem['status'] = 'want_to_experience';
-        let progress = 0;
-        let started_at = null;
-        let completed_at = null;
-
-        if (viewData) {
-          progress = viewData.progress || 0;
-          started_at = viewData.viewed_at;
-          
-          if (progress >= 100) {
-            status = 'experienced';
-            completed_at = viewData.viewed_at;
-          } else if (progress > 0) {
-            status = 'currently_experiencing';
+      for (const batch of statusBatches) {
+        const batchPromises = batch.map(async (statusItem) => {
+          try {
+            const itemKey = `${statusItem.content_type}-${statusItem.content_id}`;
+            
+            if (processedItems.has(itemKey)) {
+              return;
+            }
+            
+            processedItems.add(itemKey);
+            
+            let contentData;
+            let authorData;
+            
+            // Get content details based on type
+            if (statusItem.content_type === 'book') {
+              const { data: book } = await supabase
+                .from('books')
+                .select('title, description, cover_url, author_id, category, view_count, created_at')
+                .eq('id', statusItem.content_id)
+                .single();
+                
+              if (book) {
+                contentData = book;
+                
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('id, name, username, avatar_url')
+                  .eq('id', book.author_id)
+                  .single();
+                  
+                authorData = author;
+              }
+            } 
+            else if (statusItem.content_type === 'audiobook') {
+              const { data: audiobook } = await supabase
+                .from('audiobooks')
+                .select('title, description, cover_url, author_id, category, view_count, created_at')
+                .eq('id', statusItem.content_id)
+                .single();
+                
+              if (audiobook) {
+                contentData = audiobook;
+                
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('id, name, username, avatar_url')
+                  .eq('id', audiobook.author_id)
+                  .single();
+                  
+                authorData = author;
+              }
+            }
+            else if (statusItem.content_type === 'article') {
+              const { data: article } = await supabase
+                .from('articles')
+                .select('title, excerpt, cover_url, author_id, category, view_count, created_at')
+                .eq('id', statusItem.content_id)
+                .single();
+                
+              if (article) {
+                contentData = article;
+                
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('id, name, username, avatar_url')
+                  .eq('id', article.author_id)
+                  .single();
+                  
+                authorData = author;
+              }
+            }
+            else if (statusItem.content_type === 'podcast') {
+              const { data: podcast } = await supabase
+                .from('podcast_episodes')
+                .select('title, description, cover_url, author_id, category, view_count, created_at, duration')
+                .eq('id', statusItem.content_id)
+                .single();
+                
+              if (podcast) {
+                contentData = podcast;
+                
+                const { data: author } = await supabase
+                  .from('profiles')
+                  .select('id, name, username, avatar_url')
+                  .eq('id', podcast.author_id)
+                  .single();
+                  
+                authorData = author;
+              }
+            }
+            
+            if (contentData && authorData) {
+              statusItems.push({
+                id: statusItem.content_id,
+                type: statusItem.content_type as any,
+                title: contentData.title,
+                thumbnail: contentData.cover_url || `https://source.unsplash.com/random/800x600?${statusItem.content_type}&sig=${statusItem.content_id}`,
+                duration: contentData.duration || (statusItem.content_type === 'article' ? '5 min read' : '30 min'),
+                views: contentData.view_count || 0,
+                createdAt: contentData.created_at,
+                creator: {
+                  id: authorData.id,
+                  name: authorData.name || authorData.username || 'Unknown Author',
+                  avatar: authorData.avatar_url || `https://source.unsplash.com/random/100x100?face&sig=${authorData.id}`,
+                  followers: 0
+                },
+                category: contentData.category,
+                status: statusItem.status,
+                progress: statusItem.progress,
+                started_at: statusItem.started_at,
+                completed_at: statusItem.completed_at,
+                reading_status_id: statusItem.id
+              });
+            }
+          } catch (error) {
+            console.error(`Error processing status item ${statusItem.content_id}:`, error);
           }
-        }
+        });
+        
+        await Promise.all(batchPromises);
+      }
 
-        return {
-          id: contentData.id,
-          title: contentData.title,
-          author: contentData.profiles?.username || 'Unknown Author',
-          cover_url: contentData.cover_url,
-          content_type: bookmark.content_type,
-          status,
-          progress,
-          started_at,
-          completed_at,
-          duration: contentData.duration,
-          view_count: contentData.view_count
-        };
-      }) || [];
+      // Group items by status
+      const groupedItems = {
+        want_to_consume: statusItems.filter(item => item.status === 'want_to_consume'),
+        consuming: statusItems.filter(item => item.status === 'consuming'),
+        completed: statusItems.filter(item => item.status === 'completed'),
+        paused: statusItems.filter(item => item.status === 'paused'),
+        dropped: statusItems.filter(item => item.status === 'dropped')
+      };
 
-      const resolvedItems = await Promise.all(contentPromises);
-      const validItems = resolvedItems.filter(item => item !== null) as LibraryItem[];
-      
-      setLibraryItems(validItems);
-    } catch (error) {
-      console.error('Error loading library:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setReadingStatusItems(groupedItems);
 
-  const loadCustomShelves = async () => {
-    if (!user) return;
-
-    try {
-      const { data: shelves, error } = await supabase
+      // Load custom shelves (keeping existing functionality)
+      const { data: shelves, error: shelvesError } = await supabase
         .from('custom_shelves')
         .select(`
           id,
           name,
           description,
-          shelf_items(
+          shelf_items (
             content_id,
             content_type
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (shelvesError) throw shelvesError;
 
-      // Load content for each shelf
-      const shelvesWithContent = await Promise.all(
-        shelves?.map(async (shelf) => {
-          const items = await Promise.all(
-            shelf.shelf_items?.map(async (item) => {
-              let tableName = '';
-              switch (item.content_type) {
-                case 'book':
-                  tableName = 'books';
-                  break;
-                case 'audiobook':
-                  tableName = 'audiobooks';
-                  break;
-                case 'article':
-                  tableName = 'articles';
-                  break;
-                case 'podcast':
-                  tableName = 'podcast_episodes';
-                  break;
-              }
+      const customShelvesWithItems = (shelves || []).map(shelf => ({
+        id: shelf.id,
+        name: shelf.name,
+        description: shelf.description,
+        items: statusItems.filter(item => 
+          shelf.shelf_items?.some(si => 
+            si.content_id === item.id && si.content_type === item.type
+          )
+        )
+      }));
 
-              if (tableName) {
-                const { data } = await supabase
-                  .from(tableName)
-                  .select(`
-                    id,
-                    title,
-                    cover_url,
-                    ${item.content_type === 'podcast' ? 'duration,' : ''}
-                    profiles!${tableName}_author_id_fkey(username)
-                  `)
-                  .eq('id', item.content_id)
-                  .eq('status', 'published')
-                  .single();
-
-                if (data) {
-                  return {
-                    id: data.id,
-                    title: data.title,
-                    author: data.profiles?.username || 'Unknown Author',
-                    cover_url: data.cover_url,
-                    content_type: item.content_type,
-                    status: 'want_to_experience' as const,
-                    duration: data.duration
-                  };
-                }
-              }
-              return null;
-            }) || []
-          );
-
-          return {
-            id: shelf.id,
-            name: shelf.name,
-            description: shelf.description,
-            items: items.filter(item => item !== null) as LibraryItem[]
-          };
-        }) || []
-      );
-
-      setCustomShelves(shelvesWithContent);
-    } catch (error) {
-      console.error('Error loading custom shelves:', error);
+      setCustomShelves(customShelvesWithItems);
+    } catch (err) {
+      console.error('Error loading library:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load library');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateItemStatus = async (itemId: string, contentType: string, newStatus: LibraryItem['status']) => {
+  // Helper function to chunk an array
+  function chunk<T>(array: T[], size: number): T[][] {
+    const chunked: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunked.push(array.slice(i, i + size));
+    }
+    return chunked;
+  }
+
+  useEffect(() => {
+    loadLibrary();
+  }, [user]);
+
+  const handleAddToStatus = async (item: ContentItem, status: string) => {
     if (!user) return;
 
     try {
-      // For now, we'll just update the local state since we don't have the reading_status table
-      setLibraryItems(prev => 
-        prev.map(item => 
-          item.id === itemId && item.content_type === contentType
-            ? { ...item, status: newStatus }
-            : item
-        )
-      );
+      // Add or update reading status
+      const { error } = await supabase
+        .from('reading_status')
+        .upsert({
+          user_id: user.id,
+          content_id: item.id,
+          content_type: item.type,
+          status: status,
+          progress: status === 'completed' ? 100 : 0,
+          started_at: status === 'consuming' ? new Date().toISOString() : null,
+          completed_at: status === 'completed' ? new Date().toISOString() : null
+        });
+
+      if (error) throw error;
+
+      // Reload library to show updated data
+      loadLibrary();
+    } catch (error) {
+      console.error('Error adding to status:', error);
+    }
+  };
+
+  const handleStatusChange = async (item: ReadingStatusItem, newStatus: string) => {
+    if (!user) return;
+
+    try {
+      const updateData: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+
+      if (newStatus === 'consuming' && item.status === 'want_to_consume') {
+        updateData.started_at = new Date().toISOString();
+      }
+
+      if (newStatus === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+        updateData.progress = 100;
+      }
+
+      const { error } = await supabase
+        .from('reading_status')
+        .update(updateData)
+        .eq('id', item.reading_status_id);
+
+      if (error) throw error;
+
+      // Update local state
+      setReadingStatusItems(prev => {
+        const newItems = { ...prev };
+        
+        // Remove from old status
+        Object.keys(newItems).forEach(status => {
+          newItems[status as keyof typeof newItems] = newItems[status as keyof typeof newItems].filter(
+            i => i.reading_status_id !== item.reading_status_id
+          );
+        });
+        
+        // Add to new status
+        const updatedItem = { ...item, status: newStatus, progress: newStatus === 'completed' ? 100 : item.progress };
+        newItems[newStatus as keyof typeof newItems].push(updatedItem);
+        
+        return newItems;
+      });
     } catch (error) {
       console.error('Error updating status:', error);
     }
   };
 
-  const removeFromLibrary = async (itemId: string, contentType: string) => {
+  const handleRemoveFromStatus = async (item: ReadingStatusItem) => {
     if (!user) return;
 
     try {
-      // Remove from bookmarks
       const { error } = await supabase
-        .from('bookmarks')
+        .from('reading_status')
         .delete()
-        .eq('user_id', user.id)
-        .eq('content_id', itemId)
-        .eq('content_type', contentType);
+        .eq('id', item.reading_status_id);
 
       if (error) throw error;
 
-      // Update local state
-      setLibraryItems(prev => 
-        prev.filter(item => !(item.id === itemId && item.content_type === contentType))
-      );
+      // Remove from local state
+      setReadingStatusItems(prev => ({
+        ...prev,
+        [item.status]: prev[item.status as keyof typeof prev].filter(
+          i => i.reading_status_id !== item.reading_status_id
+        )
+      }));
     } catch (error) {
-      console.error('Error removing from library:', error);
+      console.error('Error removing from status:', error);
     }
   };
 
-  const handleLearningGoalAdded = async () => {
-    await loadLibrary();
-    await loadCustomShelves();
+  const handleCreateShelf = async (name: string, description?: string) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('custom_shelves')
+        .insert({
+          user_id: user.id,
+          name,
+          description
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCustomShelves(prev => [
+        ...prev,
+        {
+          id: data.id,
+          name: data.name,
+          description: data.description,
+          items: []
+        }
+      ]);
+
+      setShowCreateShelfDialog(false);
+    } catch (error) {
+      console.error('Error creating shelf:', error);
+    }
   };
 
-  const filteredItems = libraryItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || item.content_type === filterType;
-    const matchesStatus = item.status === activeTab;
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
-  const getContentUrl = (item: LibraryItem) => {
-    switch (item.content_type) {
+  const handleContentClick = (item: ReadingStatusItem) => {
+    switch (item.type) {
+      case 'article':
+        navigate(`/reader/article-${item.id}`);
+        break;
       case 'book':
-        return `/reader/${item.id}`;
+        navigate(`/reader/book-${item.id}`);
+        break;
       case 'audiobook':
       case 'podcast':
-        return `/player/${item.id}`;
-      case 'article':
-        return `/reader/${item.id}`;
-      default:
-        return '#';
+        navigate(`/player/${item.type}-${item.id}`);
+        break;
     }
   };
 
-  if (loading) {
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return 'Want to Experience';
+      case 'consuming':
+        return 'Currently Experiencing';
+      case 'completed':
+        return 'Experienced';
+      case 'paused':
+        return 'Paused';
+      case 'dropped':
+        return 'Dropped';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusDescription = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return 'Content you plan to read or listen to';
+      case 'consuming':
+        return 'Content you are actively reading or listening to';
+      case 'completed':
+        return 'Content you have finished';
+      case 'paused':
+        return 'Content you have temporarily stopped';
+      case 'dropped':
+        return 'Content you decided not to finish';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'want_to_consume':
+        return <Target className="w-6 h-6 text-primary" />;
+      case 'consuming':
+        return <Play className="w-6 h-6 text-primary" />;
+      case 'completed':
+        return <CheckCircle className="w-6 h-6 text-primary" />;
+      case 'paused':
+        return <Pause className="w-6 h-6 text-primary" />;
+      case 'dropped':
+        return <Eye className="w-6 h-6 text-primary" />;
+      default:
+        return <BookOpen className="w-6 h-6 text-primary" />;
+    }
+  };
+
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case 'audiobook':
+      case 'podcast':
+        return <Headphones className="w-4 h-4" />;
+      default:
+        return <BookOpen className="w-4 h-4" />;
+    }
+  };
+
+  const getActionLabel = (type: string) => {
+    switch (type) {
+      case 'audiobook':
+      case 'podcast':
+        return 'Listen';
+      default:
+        return 'Read';
+    }
+  };
+
+  // Filter items based on search and content type
+  const getFilteredItems = (items: ReadingStatusItem[]) => {
+    let filtered = items;
+
+    if (contentFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === contentFilter);
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.creator.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  const tabs = [
+    { id: 'want_to_consume', label: 'Want to Experience', count: readingStatusItems.want_to_consume.length },
+    { id: 'consuming', label: 'Currently Experiencing', count: readingStatusItems.consuming.length },
+    { id: 'completed', label: 'Experienced', count: readingStatusItems.completed.length },
+    { id: 'paused', label: 'Paused', count: readingStatusItems.paused.length },
+    { id: 'dropped', label: 'Dropped', count: readingStatusItems.dropped.length }
+  ];
+
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4">
-                  <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium mb-2">Sign in to access your library</h3>
+        <p className="text-muted-foreground">
+          Keep track of your reading progress and organize your content
+        </p>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+        <p className="text-destructive mb-4 mt-2">{error}</p>
+        <button
+          onClick={() => loadLibrary()}
+          className="text-primary hover:underline"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  const currentItems = getFilteredItems(readingStatusItems[activeTab as keyof typeof readingStatusItems]);
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Library</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Organize and track your learning journey
-            </p>
-          </div>
-          <div className="flex gap-3 mt-4 sm:mt-0">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">My Library</h1>
+          <p className="text-muted-foreground">
+            Track your learning journey across all content types
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setStatusDialogConfig({
+                status: 'want_to_consume',
+                title: 'Add to Library'
+              });
+              setShowStatusDialog(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Content</span>
+          </button>
+          <button
+            onClick={() => setShowCreateShelfDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-accent transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Shelf</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b">
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+          {tabs.map((tab) => (
             <button
-              onClick={() => setShowCreateShelf(true)}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
             >
-              Create Shelf
+              <span>{tab.label}</span>
+              <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search your library..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-10 pl-9 pr-4 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setContentFilter('all')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                contentFilter === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              All
             </button>
             <button
-              onClick={() => setShowLearningGoals(true)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setContentFilter('book')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'book'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
             >
-              Learning Goals
+              <BookOpen className="w-3 h-3" />
+              Books
+            </button>
+            <button
+              onClick={() => setContentFilter('audiobook')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'audiobook'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <Headphones className="w-3 h-3" />
+              Audiobooks
+            </button>
+            <button
+              onClick={() => setContentFilter('article')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'article'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <BookOpen className="w-3 h-3" />
+              Articles
+            </button>
+            <button
+              onClick={() => setContentFilter('podcast')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                contentFilter === 'podcast'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-primary/10'
+              }`}
+            >
+              <Headphones className="w-3 h-3" />
+              Podcasts
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search your library..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
-            >
-              <option value="all">All Types</option>
-              <option value="book">Books</option>
-              <option value="audiobook">Audiobooks</option>
-              <option value="article">Articles</option>
-              <option value="podcast">Podcasts</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Status Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 dark:border-gray-700">
-          {Object.entries(statusConfig).map(([status, config]) => {
-            const Icon = config.icon;
-            const count = libraryItems.filter(item => item.status === status).length;
-            
-            return (
-              <button
-                key={status}
-                onClick={() => setActiveTab(status as keyof typeof statusConfig)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-t-lg transition-colors ${
-                  activeTab === status
-                    ? 'bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 text-primary'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="font-medium">{config.label}</span>
-                <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content Grid */}
-        <div className="mb-12">
-          {filteredItems.length === 0 ? (
-            <div className="text-center py-12">
-              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${statusConfig[activeTab].bgColor}`}>
-                {React.createElement(statusConfig[activeTab].icon, {
-                  className: `w-8 h-8 ${statusConfig[activeTab].color}`
-                })}
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No content in "{statusConfig[activeTab].label}"
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {statusConfig[activeTab].description}
-              </p>
-              <button
-                onClick={() => window.location.href = '/search'}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Discover Content
-              </button>
+      {/* Content */}
+      <div className="space-y-6">
+        {/* Current Tab Content */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              {getStatusIcon(activeTab)}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredItems.map((item) => (
-                <div key={`${item.id}-${item.content_type}`} className="group relative">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                    {/* Cover Image */}
-                    <div className="aspect-[3/4] relative overflow-hidden">
-                      {item.cover_url ? (
-                        <img
-                          src={item.cover_url}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          {React.createElement(contentTypeIcons[item.content_type], {
-                            className: "w-12 h-12 text-gray-400"
-                          })}
-                        </div>
-                      )}
-                      
-                      {/* Progress Bar */}
-                      {item.progress && item.progress > 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2">
-                          <div className="w-full bg-gray-300 rounded-full h-2">
-                            <div
-                              className="bg-primary h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${item.progress}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-white text-xs mt-1">{item.progress}% complete</p>
-                        </div>
-                      )}
+            <div>
+              <h2 className="text-xl font-semibold">{getStatusLabel(activeTab)}</h2>
+              <p className="text-sm text-muted-foreground">{getStatusDescription(activeTab)}</p>
+            </div>
+          </div>
 
-                      {/* Content Type Badge */}
-                      <div className="absolute top-2 left-2">
-                        <div className="bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                          {React.createElement(contentTypeIcons[item.content_type], {
-                            className: "w-3 h-3"
-                          })}
-                          {item.content_type}
-                        </div>
-                      </div>
-
-                      {/* Status Dropdown */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <select
-                          value={item.status}
-                          onChange={(e) => updateItemStatus(item.id, item.content_type, e.target.value as LibraryItem['status'])}
-                          className="bg-black bg-opacity-70 text-white text-xs rounded px-2 py-1 border-none focus:ring-2 focus:ring-primary"
-                        >
-                          {Object.entries(statusConfig).map(([status, config]) => (
-                            <option key={status} value={status} className="bg-gray-800">
-                              {config.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] bg-muted rounded-lg mb-2" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-1" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : currentItems.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {currentItems.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="group space-y-3">
+                  {/* Thumbnail */}
+                  <div 
+                    onClick={() => handleContentClick(item)}
+                    className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.src = `https://source.unsplash.com/random/400x600?${item.type}&sig=${item.id}`;
+                      }}
+                    />
+                    
+                    {/* Content type badge */}
+                    <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-background/90 text-xs font-medium flex items-center gap-1 shadow-sm">
+                      {getContentIcon(item.type)}
+                      <span className="capitalize">{item.type}</span>
                     </div>
 
-                    {/* Content Info */}
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        by {item.author}
-                      </p>
-                      
-                      {/* Duration for audio content */}
-                      {item.duration && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-2">
-                          <Clock className="w-3 h-3" />
-                          {item.duration}
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <a
-                          href={getContentUrl(item)}
-                          className="flex-1 px-3 py-2 bg-primary text-primary-foreground text-sm rounded hover:bg-primary/90 transition-colors text-center"
-                        >
-                          {item.content_type === 'audiobook' || item.content_type === 'podcast' ? 'Listen' : 'Read'}
-                        </a>
-                        <button
-                          onClick={() => removeFromLibrary(item.id, item.content_type)}
-                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          Remove
-                        </button>
+                    {/* Progress bar */}
+                    {item.progress > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/50">
+                        <div 
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${item.progress}%` }}
+                        />
                       </div>
+                    )}
+
+                    {/* Play button for audio content */}
+                    {(item.type === 'audiobook' || item.type === 'podcast') && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status dropdown */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="relative">
+                        <button className="w-8 h-8 rounded-full bg-background/90 flex items-center justify-center hover:bg-background transition-colors">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-background border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <div className="p-2 space-y-1">
+                            {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
+                              <button
+                                key={status}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(item, status);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                  item.status === status
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'hover:bg-primary hover:text-primary-foreground'
+                                }`}
+                              >
+                                {getStatusLabel(status)}
+                              </button>
+                            ))}
+                            <div className="border-t pt-1 mt-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromStatus(item);
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                              >
+                                Remove from Library
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content info */}
+                  <div className="space-y-1">
+                    <h3 className="font-medium line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {item.creator.name}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                        <span>4.5</span>
+                      </div>
+                      {item.progress > 0 && (
+                        <span>{item.progress}% complete</span>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                {getStatusIcon(activeTab)}
+              </div>
+              <h3 className="text-lg font-medium mb-2">No content in {getStatusLabel(activeTab).toLowerCase()}</h3>
+              <p className="text-muted-foreground mb-6">
+                {getStatusDescription(activeTab)}
+              </p>
+              <button
+                onClick={() => {
+                  setStatusDialogConfig({
+                    status: activeTab,
+                    title: `Add to ${getStatusLabel(activeTab)}`
+                  });
+                  setShowStatusDialog(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Content
+              </button>
             </div>
           )}
         </div>
 
         {/* Custom Shelves */}
         {customShelves.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Custom Shelves</h2>
-            <div className="space-y-8">
-              {customShelves.map((shelf) => (
-                <div key={shelf.id} className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {shelf.name}
-                      </h3>
-                      {shelf.description && (
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                          {shelf.description}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {shelf.items.length} items
-                    </span>
-                  </div>
-                  
-                  {shelf.items.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                      This shelf is empty. Add some content to get started!
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {shelf.items.map((item) => (
-                        <div key={`${item.id}-${item.content_type}`} className="group">
-                          <a href={getContentUrl(item)} className="block">
-                            <div className="aspect-[3/4] relative overflow-hidden rounded-lg mb-2">
-                              {item.cover_url ? (
-                                <img
-                                  src={item.cover_url}
-                                  alt={item.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                  {React.createElement(contentTypeIcons[item.content_type], {
-                                    className: "w-8 h-8 text-gray-400"
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {item.author}
-                            </p>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Custom Shelves</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customShelves.map(shelf => (
+                <div key={shelf.id} className="bg-card border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">{shelf.name}</h3>
+                  {shelf.description && (
+                    <p className="text-sm text-muted-foreground mb-3">{shelf.description}</p>
                   )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {shelf.items.length} {shelf.items.length === 1 ? 'item' : 'items'}
+                    </span>
+                    <button className="text-sm text-primary hover:underline">
+                      View Shelf
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -667,18 +884,23 @@ export function Library() {
         )}
       </div>
 
-      {/* Dialogs */}
-      <CreateShelfDialog
-        isOpen={showCreateShelf}
-        onClose={() => setShowCreateShelf(false)}
-        onShelfCreated={loadCustomShelves}
-      />
-      
-      <LearningGoalsDialog
-        isOpen={showLearningGoals}
-        onClose={() => setShowLearningGoals(false)}
-        onAddGoal={handleLearningGoalAdded}
-      />
+      {/* Reading Status Dialog */}
+      {showStatusDialog && (
+        <ReadingStatusDialog
+          onClose={() => setShowStatusDialog(false)}
+          onAddToStatus={handleAddToStatus}
+          defaultStatus={statusDialogConfig.status}
+          title={statusDialogConfig.title}
+        />
+      )}
+
+      {/* Create Shelf Dialog */}
+      {showCreateShelfDialog && (
+        <CreateShelfDialog
+          onClose={() => setShowCreateShelfDialog(false)}
+          onCreateShelf={handleCreateShelf}
+        />
+      )}
     </div>
   );
 }
