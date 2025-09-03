@@ -517,21 +517,6 @@ export function LibraryPage() {
     }
   };
 
-  const handleContentClick = (item: ReadingStatusItem) => {
-    switch (item.type) {
-      case 'article':
-        navigate(`/reader/article-${item.id}`);
-        break;
-      case 'book':
-        navigate(`/reader/book-${item.id}`);
-        break;
-      case 'audiobook':
-      case 'podcast':
-        navigate(`/player/${item.type}-${item.id}`);
-        break;
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'want_to_consume':
