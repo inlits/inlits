@@ -347,6 +347,28 @@ export function DashboardOverviewPage() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {quickActions.map((action) => (
+            <Link
+              key={action.id}
+              to={action.href}
+              className="bg-card border rounded-lg p-4 hover:bg-accent/50 transition-colors shadow-sm"
+            >
+              <div className="flex flex-col h-full">
+                <div className="mb-4">
+                  <action.icon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-medium mb-1">{action.title}</h3>
+                <p className="text-sm text-muted-foreground">{action.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Recent Content */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">

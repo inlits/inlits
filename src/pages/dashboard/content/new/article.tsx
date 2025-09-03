@@ -466,13 +466,13 @@ export function NewArticlePage() {
               {showCategoryDropdown && (
                 <div className="absolute z-50 w-full py-2 mt-1 duration-100 border rounded-md shadow-lg bg-background animate-in fade-in-0 zoom-in-95 max-h-60 overflow-y-auto">
                   <div className="px-3 py-2 text-xs text-muted-foreground border-b">
-                    Select only relevant categories
+                    Select multiple categories (recommended: 2-3)
                   </div>
                   {CATEGORIES.map((category) => (
                     <label
                       key={category}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground rounded-md ${
-                        selectedCategories.includes(category) ? 'bg-primary text-primary-foreground' : ''
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-[#1B4AB1] hover:text-white ${
+                        selectedCategories.includes(category) ? 'bg-[#1B4AB1] text-white' : ''
                       }`}
                     >
                       <input
