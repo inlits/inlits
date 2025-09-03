@@ -20,7 +20,6 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ReadingStatusDialog } from '@/components/library/reading-status-dialog';
-import { CreateShelfDialog } from '@/components/library/create-shelf-dialog';
 import type { ContentItem } from '@/lib/types';
 
 interface ReadingStatusItem extends ContentItem {
@@ -29,13 +28,6 @@ interface ReadingStatusItem extends ContentItem {
   started_at?: string;
   completed_at?: string;
   reading_status_id: string;
-}
-
-interface CustomShelf {
-  id: string;
-  name: string;
-  description?: string;
-  items: ContentItem[];
 }
 
 export function LibraryPage() {
@@ -48,13 +40,10 @@ export function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [contentFilter, setContentFilter] = useState<'all' | 'book' | 'audiobook' | 'article' | 'podcast'>('all');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [showCreateShelfDialog, setShowCreateShelfDialog] = useState(false);
   const [statusDialogConfig, setStatusDialogConfig] = useState<{
     status: string;
     title: string;
   }>({ status: 'want_to_consume', title: 'Add to Library' });
-  const [selectedShelf, setSelectedShelf] = useState<string | null>(null);
-  const [showShelfContent, setShowShelfContent] = useState(false);
 
   // Reading status data
   const [readingStatusItems, setReadingStatusItems] = useState<{
@@ -70,9 +59,6 @@ export function LibraryPage() {
     paused: [],
     dropped: []
   });
-
-  // Custom shelves
-  const [customShelves, setCustomShelves] = useState<CustomShelf[]>([]);
 
   // Check if we should open learning goals dialog from URL params
   useEffect(() => {
@@ -94,22 +80,6 @@ export function LibraryPage() {
       );
     }
   }, [searchParams]);
-
-  // Check if we're in "add to shelf" mode
-  const addToShelfMode = searchParams.get('shelf');
-  const [activeShelfId, setActiveShelfId] = useState<string | null>(addToShelfMode);
-  const [activeShelfName, setActiveShelfName] = useState<string>('');
-
-  // Get shelf name when in add mode
-  useEffect(() => {
-    if (addToShelfMode && customShelves.length > 0) {
-      const shelf = customShelves.find(s => s.id === addToShelfMode);
-      if (shelf) {
-        setActiveShelfId(addToShelfMode);
-        setActiveShelfName(shelf.name);
-      }
-    }
-  }, [addToShelfMode, customShelves]);
 
   const loadLibrary = async () => {
     if (!user) {
@@ -272,36 +242,6 @@ export function LibraryPage() {
       };
 
       setReadingStatusItems(groupedItems);
-
-      // Load custom shelves (keeping existing functionality)
-      const { data: shelves, error: shelvesError } = await supabase
-        .from('custom_shelves')
-        .select(`
-          id,
-          name,
-          description,
-          shelf_items (
-            content_id,
-            content_type
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
-
-      if (shelvesError) throw shelvesError;
-
-      const customShelvesWithItems = (shelves || []).map(shelf => ({
-        id: shelf.id,
-        name: shelf.name,
-        description: shelf.description,
-        items: statusItems.filter(item => 
-          shelf.shelf_items?.some(si => 
-            si.content_id === item.id && si.content_type === item.type
-          )
-        )
-      }));
-
-      setCustomShelves(customShelvesWithItems);
     } catch (err) {
       console.error('Error loading library:', err);
       setError(err instanceof Error ? err.message : 'Failed to load library');
@@ -349,71 +289,18 @@ export function LibraryPage() {
     }
   };
 
-  const handleAddToShelf = async (contentId: string, contentType: string) => {
-    if (!user || !activeShelfId) return;
-
-    try {
-      const { error } = await supabase
-        .from('shelf_items')
-        .insert({
-          shelf_id: activeShelfId,
-          content_id: contentId,
-          content_type: contentType
-        });
-
-      if (error) throw error;
-
-      // Update the shelf in local state
-      setCustomShelves(prev => prev.map(shelf => {
-        if (shelf.id === activeShelfId) {
-          // Find the content item to add
-          const allItems = [
-            ...readingStatusItems.want_to_consume,
-            ...readingStatusItems.consuming,
-            ...readingStatusItems.completed,
-            ...readingStatusItems.paused,
-            ...readingStatusItems.dropped
-          ];
-          const contentItem = allItems.find(item => item.id === contentId && item.type === contentType);
-          
-          if (contentItem) {
-            return {
-              ...shelf,
-              items: [...shelf.items, contentItem]
-            };
-          }
-        }
-        return shelf;
-      }));
-
-      // Show success message or feedback
-      console.log('Added to shelf successfully');
-    } catch (error) {
-      console.error('Error adding to shelf:', error);
-    }
-  };
-
   const handleContentClick = (item: ReadingStatusItem) => {
-    // If in add to shelf mode, add to shelf instead of navigating
-    if (activeShelfId) {
-      handleAddToShelf(item.id, item.type);
-      return;
-    }
-
-    // Only navigate if NOT in add to shelf mode
-    if (!activeShelfId) {
-      switch (item.type) {
-        case 'article':
-          navigate(`/reader/article-${item.id}`);
-          break;
-        case 'book':
-          navigate(`/reader/book-${item.id}`);
-          break;
-        case 'audiobook':
-        case 'podcast':
-          navigate(`/player/${item.type}-${item.id}`);
-          break;
-      }
+    switch (item.type) {
+      case 'article':
+        navigate(`/reader/article-${item.id}`);
+        break;
+      case 'book':
+        navigate(`/reader/book-${item.id}`);
+        break;
+      case 'audiobook':
+      case 'podcast':
+        navigate(`/player/${item.type}-${item.id}`);
+        break;
     }
   };
 
@@ -484,38 +371,6 @@ export function LibraryPage() {
       }));
     } catch (error) {
       console.error('Error removing from status:', error);
-    }
-  };
-
-  const handleCreateShelf = async (name: string, description?: string) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('custom_shelves')
-        .insert({
-          user_id: user.id,
-          name,
-          description
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setCustomShelves(prev => [
-        ...prev,
-        {
-          id: data.id,
-          name: data.name,
-          description: data.description,
-          items: []
-        }
-      ]);
-
-      setShowCreateShelfDialog(false);
-    } catch (error) {
-      console.error('Error creating shelf:', error);
     }
   };
 
@@ -613,8 +468,7 @@ export function LibraryPage() {
     { id: 'consuming', label: 'Currently Experiencing', count: readingStatusItems.consuming.length },
     { id: 'completed', label: 'Experienced', count: readingStatusItems.completed.length },
     { id: 'paused', label: 'Paused', count: readingStatusItems.paused.length },
-    { id: 'dropped', label: 'Dropped', count: readingStatusItems.dropped.length },
-    { id: 'custom_shelves', label: 'Custom Shelves', count: customShelves.length }
+    { id: 'dropped', label: 'Dropped', count: readingStatusItems.dropped.length }
   ];
 
   if (!user) {
@@ -647,47 +501,6 @@ export function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Add to Shelf Banner */}
-      {activeShelfId && (
-        <div className="bg-primary/10 border-l-4 border-primary p-4 rounded-lg">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 text-primary mt-0.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-primary">
-                  Adding content to "{activeShelfName}"
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Click on any content card to add it to this shelf
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                const newSearchParams = new URLSearchParams(searchParams);
-                newSearchParams.delete('shelf');
-                window.history.replaceState(
-                  {},
-                  '',
-                  `${window.location.pathname}?${newSearchParams.toString()}`
-                );
-                setActiveShelfId(null);
-              }}
-              className="p-1 hover:bg-primary/10 rounded-full transition-colors"
-            >
-              <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -696,7 +509,7 @@ export function LibraryPage() {
             Track your learning journey across all content types
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0 mt-4 lg:mt-0">
           <button
             onClick={() => {
               setStatusDialogConfig({
@@ -705,18 +518,9 @@ export function LibraryPage() {
               });
               setShowStatusDialog(true);
             }}
-            className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm lg:text-base"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" />
             <span>Add Content</span>
-          </button>
-          <button
-            onClick={() => setShowCreateShelfDialog(true)}
-            className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg border hover:bg-accent transition-colors text-sm lg:text-base"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Shelf</span>
-          </button>
         </div>
       </div>
 
@@ -820,273 +624,158 @@ export function LibraryPage() {
 
       {/* Content */}
       <div className="space-y-6">
-        {/* Reading Status Content */}
-        {activeTab !== 'custom_shelves' ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                {getStatusIcon(activeTab)}
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">{getStatusLabel(activeTab)}</h2>
-                <p className="text-sm text-muted-foreground">{getStatusDescription(activeTab)}</p>
-              </div>
+        <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold">{getStatusLabel(activeTab)}</h2>
+              <p className="text-sm text-muted-foreground">{getStatusDescription(activeTab)}</p>
             </div>
+          </div>
 
-            {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="aspect-[2/3] bg-muted rounded-lg mb-2" />
-                    <div className="h-4 bg-muted rounded w-3/4 mb-1" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : currentItems.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {currentItems.map((item) => (
-                  <div key={`${item.type}-${item.id}`} className="group space-y-3">
-                    {/* Thumbnail */}
-                    <div 
-                      onClick={() => {
-                        if (activeShelfId) {
-                          handleAddToShelf(item.id, item.type);
-                        } else {
-                          handleContentClick(item);
-                        }
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] bg-muted rounded-lg mb-2" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-1" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : currentItems.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {currentItems.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="group space-y-3">
+                  {/* Thumbnail */}
+                  <div 
+                    onClick={() => handleContentClick(item)}
+                    className="cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.src = `https://source.unsplash.com/random/400x600?${item.type}&sig=${item.id}`;
                       }}
-                      className={`cursor-pointer relative aspect-[2/3] rounded-lg overflow-hidden bg-muted ${
-                        activeShelfId ? 'ring-2 ring-primary/50 ring-offset-2' : ''
-                      }`}
-                    >
-                      <img
-                        src={item.thumbnail}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          img.src = `https://source.unsplash.com/random/400x600?${item.type}&sig=${item.id}`;
-                        }}
-                      />
-                      
-                      {/* Content type badge */}
-                      <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-background/90 text-xs font-medium flex items-center gap-1 shadow-sm">
-                        {getContentIcon(item.type)}
-                        <span className="capitalize hidden sm:inline">{item.type}</span>
+                    />
+                    
+                    {/* Content type badge */}
+                    <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-background/90 text-xs font-medium flex items-center gap-1 shadow-sm">
+                      {getContentIcon(item.type)}
+                      <span className="capitalize hidden sm:inline">{item.type}</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    {item.progress > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/50">
+                        <div 
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${item.progress}%` }}
+                        />
                       </div>
+                    )}
 
-                      {/* Add to shelf indicator */}
-                      {activeShelfId && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                            Click to Add
-                          </div>
+                    {/* Play button for audio content */}
+                    {(item.type === 'audiobook' || item.type === 'podcast') && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Progress bar */}
-                      {item.progress > 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-background/50">
-                          <div 
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${item.progress}%` }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Play button for audio content */}
-                      {(item.type === 'audiobook' || item.type === 'podcast') && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
-                          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="w-6 h-6 text-primary-foreground ml-1" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Status dropdown - Fixed visibility */}
-                      {!activeShelfId && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <div className="relative">
-                            <button 
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-lg border"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-popover border rounded-lg shadow-xl z-[100] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-                              <div className="p-2 space-y-1">
-                                {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
-                                  <button
-                                    key={status}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(item, status);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-primary hover:text-primary-foreground ${
-                                      item.status === status
-                                        ? 'bg-primary text-primary-foreground'
-                                        : ''
-                                    }`}
-                                  >
-                                    {getStatusLabel(status)}
-                                  </button>
-                                ))}
-                                <div className="border-t pt-1 mt-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveFromStatus(item);
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
-                                  >
-                                    Remove from Library
-                                  </button>
-                                </div>
-                              </div>
+                    {/* Status dropdown - Fixed visibility */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-lg border"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-popover/95 backdrop-blur-sm border rounded-lg shadow-xl z-[100] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                          <div className="p-2 space-y-1">
+                            {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
+                              <button
+                                key={status}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(item, status);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-primary hover:text-primary-foreground ${
+                                  item.status === status
+                                    ? 'bg-primary text-primary-foreground'
+                                    : ''
+                                }`}
+                              >
+                                {getStatusLabel(status)}
+                              </button>
+                            ))}
+                            <div className="border-t pt-1 mt-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromStatus(item);
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                              >
+                                Remove from Library
+                              </button>
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content info */}
+                  <div className="space-y-1">
+                    <h3 className="font-medium line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {item.creator.name}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                        <span>4.5</span>
+                      </div>
+                      {item.progress > 0 && (
+                        <span>{item.progress}% complete</span>
                       )}
                     </div>
-
-                    {/* Content info */}
-                    <div className="space-y-1">
-                      <h3 className="font-medium line-clamp-2 text-sm group-hover:text-primary transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground line-clamp-1">
-                        {item.creator.name}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                          <span>4.5</span>
-                        </div>
-                        {item.progress > 0 && (
-                          <span>{item.progress}% complete</span>
-                        )}
-                      </div>
-                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  {getStatusIcon(activeTab)}
                 </div>
-                <h3 className="text-lg font-medium mb-2">No content in {getStatusLabel(activeTab).toLowerCase()}</h3>
-                <p className="text-muted-foreground mb-6">
-                  {getStatusDescription(activeTab)}
-                </p>
-                <button
-                  onClick={() => {
-                    setStatusDialogConfig({
-                      status: activeTab,
-                      title: `Add to ${getStatusLabel(activeTab)}`
-                    });
-                    setShowStatusDialog(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Content
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Custom Shelves Tab Content */
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BookMarked className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">Custom Shelves</h2>
-                <p className="text-sm text-muted-foreground">Organize your content into custom collections</p>
-              </div>
+              ))}
             </div>
-
-            {customShelves.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {customShelves.map(shelf => (
-                  <div 
-                    key={shelf.id} 
-                    className="bg-card border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedShelf(shelf.id);
-                      setShowShelfContent(true);
-                    }}
-                  >
-                        className="p-1 hover:bg-primary/10 rounded-full transition-colors"
-                        title="Add content to shelf"
-                      >
-                        <Plus className="w-4 h-4 text-primary" />
-                      </button>
-                    </div>
-                    {shelf.description && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{shelf.description}</p>
-                    )}
-                    
-                    {/* Preview of shelf items */}
-                    {shelf.items.length > 0 ? (
-                      <div className="flex -space-x-2 mb-3">
-                        {shelf.items.slice(0, 4).map((item, index) => (
-                          <div key={`${item.type}-${item.id}`} className="w-8 h-10 rounded border-2 border-background overflow-hidden bg-muted">
-                            <img
-                              src={item.thumbnail}
-                              alt={item.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                img.src = `https://source.unsplash.com/random/400x600?${item.type}&sig=${item.id}`;
-                              }}
-                            />
-                          </div>
-                        ))}
-                        {shelf.items.length > 4 && (
-                          <div className="w-8 h-10 rounded border-2 border-background bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs text-primary font-medium">+{shelf.items.length - 4}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="h-10 border-2 border-dashed border-muted rounded mb-3 flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">Empty shelf</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {shelf.items.length} {shelf.items.length === 1 ? 'item' : 'items'}
-                      </span>
-                      <span className="text-primary hover:underline">View Shelf</span>
-                    </div>
-                  </div>
-                ))}
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                {getStatusIcon(activeTab)}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <BookMarked className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No custom shelves yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create custom shelves to organize your content
-                </p>
-                <button
-                  onClick={() => setShowCreateShelfDialog(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Your First Shelf
-                </button>
-              </div>
-            )}
+              <h3 className="text-lg font-medium mb-2">No content in {getStatusLabel(activeTab).toLowerCase()}</h3>
+              <p className="text-muted-foreground mb-6">
+                {getStatusDescription(activeTab)}
+              </p>
+              <button
+                onClick={() => {
+                  setStatusDialogConfig({
+                    status: activeTab,
+                    title: `Add to ${getStatusLabel(activeTab)}`
+                  });
+                  setShowStatusDialog(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Content
+              </button>
+            </div>
+          )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Reading Status Dialog */}
@@ -1099,13 +788,6 @@ export function LibraryPage() {
         />
       )}
 
-      {/* Create Shelf Dialog */}
-      {showCreateShelfDialog && (
-        <CreateShelfDialog
-          onClose={() => setShowCreateShelfDialog(false)}
-          onCreateShelf={handleCreateShelf}
-        />
-      )}
     </div>
   );
 }
