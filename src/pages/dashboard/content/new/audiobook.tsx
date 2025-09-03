@@ -297,9 +297,10 @@ export function NewAudiobookPage() {
     }
 
     if (!selectedCategory) {
-    if (selectedCategories.length === 0) {
-      setError('At least one category is required');
-      return;
+      if (selectedCategories.length === 0) {
+        setError('At least one category is required');
+        return;
+      }
     }
 
     // Validate that all chapters have audio files in create mode
