@@ -184,7 +184,6 @@ export function NewArticlePage() {
       return;
     }
 
-    if (!selectedCategory) {
     if (selectedCategories.length === 0) {
       setError('At least one category is required');
       return;
