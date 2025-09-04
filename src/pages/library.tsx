@@ -733,6 +733,7 @@ export function LibraryPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
                   {/* Content info */}
                   <div className="space-y-1">
