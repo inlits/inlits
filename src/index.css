@@ -91,14 +91,36 @@
 
 /* Global hover consistency - ensure text and icons are white when hovering over primary colored elements */
 .hover\:bg-primary:hover,
-.hover\:bg-primary\/10:hover,
-.hover\:bg-primary\/20:hover {
+.hover\:bg-primary\/90:hover,
+.hover\:border-primary:hover {
   color: white !important;
 }
 
 .hover\:bg-primary:hover svg,
-.hover\:bg-primary\/10:hover svg,
-.hover\:bg-primary\/20:hover svg {
+.hover\:bg-primary\/90:hover svg,
+.hover\:border-primary:hover svg {
+  color: white !important;
+}
+
+/* Ensure all primary background elements have white text */
+.bg-primary,
+.bg-primary\/90 {
+  color: white !important;
+}
+
+.bg-primary svg,
+.bg-primary\/90 svg {
+  color: white !important;
+}
+
+/* Fix button hover states */
+button:hover.hover\:bg-primary,
+a:hover.hover\:bg-primary {
+  color: white !important;
+}
+
+button:hover.hover\:bg-primary svg,
+a:hover.hover\:bg-primary svg {
   color: white !important;
 }
 
