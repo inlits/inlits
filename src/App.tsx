@@ -27,7 +27,7 @@ const FollowedPage = React.lazy(() => import('./pages/followed').then(module => 
 const LibraryPage = React.lazy(() => import('./pages/library').then(module => ({ default: module.LibraryPage })));
 const CommunityPage = React.lazy(() => import('./pages/community').then(module => ({ default: module.CommunityPage })));
 const HistoryPage = React.lazy(() => import('./pages/history').then(module => ({ default: module.HistoryPage })));
-const ProfilePage = React.lazy(() => import('./pages/profile/index').then(module => ({ default: module.ProfilePage })));
+const ProfilePage = React.lazy(() => import('./pages/profile/index'));
 const UserProfilePage = React.lazy(() => import('./pages/profile/[username]').then(module => ({ default: module.UserProfilePage })));
 const SearchProfilesPage = React.lazy(() => import('./pages/profile/search').then(module => ({ default: module.SearchProfilesPage })));
 const CreatorProfilePage = React.lazy(() => import('./pages/creator/[username]').then(module => ({ default: module.CreatorProfilePage })));
