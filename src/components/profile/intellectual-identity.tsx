@@ -1,5 +1,5 @@
 import React from 'react';
-import { Book, Headphones, FileText, BookOpen, Target, TrendingUp, Clock } from 'lucide-react';
+import { Book, Headphones, FileText, BookOpen, Target, TrendingUp, Clock, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import type { Profile } from '@/lib/types';
