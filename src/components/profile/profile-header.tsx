@@ -1,6 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Settings, MessageSquare } from 'lucide-react';
+import { MapPin, Calendar, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 interface ProfileHeaderProps {
@@ -9,16 +8,31 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderProps) {
-  const { profile: authProfile } = useAuth();
+  const { profile: authProfile, activeProfileType } = useAuth();
   const userProfile = profile || authProfile;
+  
+  // Get active profile data
+  const getActiveProfileData = () => {
+    if (!userProfile) return {};
+    
+    const activeType = userProfile.active_profile_type || activeProfileType || 'consumer';
+    if (activeType === 'consumer') {
+      return userProfile.consumer_profile || {};
+    } else {
+      return userProfile.creator_profile || {};
+    }
+  };
+
+  const activeProfileData = getActiveProfileData();
   
   // Use real data if available, otherwise use mock data
   const profileData = {
-    avatar_url: userProfile?.avatar_url || `https://source.unsplash.com/random/200x200?portrait&sig=${Date.now()}`,
+    avatar_url: activeProfileData.avatar_url || userProfile?.avatar_url || `https://source.unsplash.com/random/200x200?portrait&sig=${Date.now()}`,
     name: userProfile?.name || userProfile?.username || 'John Doe',
-    tagline: userProfile?.bio || 'Exploring worlds through words',
+    tagline: activeProfileData.bio || userProfile?.bio || 'Exploring worlds through words',
     location: userProfile?.location || 'San Francisco, CA',
     joinedDate: userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'March 2025',
+    cover_url: activeProfileData.cover_url || userProfile?.cover_url,
     topBadges: [
       { id: '1', name: 'Bookworm', icon: '📚' },
       { id: '2', name: 'Audiophile', icon: '🎧' },
@@ -31,7 +45,7 @@ export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderPro
       {/* Cover Image */}
       <div className="h-48 rounded-xl overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
         <img
-          src={userProfile?.cover_url || "https://source.unsplash.com/random/1600x400?library"}
+          src={profileData.cover_url || "https://source.unsplash.com/random/1600x400?library"}
           alt="Cover"
           className="w-full h-full object-cover opacity-50"
         />
@@ -60,13 +74,6 @@ export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderPro
               </div>
 
               <div className="flex items-center gap-3">
-                <Link
-                  to="/settings"
-                  className="inline-flex items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Link>
                 <button className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Message

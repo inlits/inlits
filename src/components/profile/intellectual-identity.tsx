@@ -13,25 +13,34 @@ interface IntellectualIdentityProps {
 export function IntellectualIdentity({ profile, stats, readingHistory }: IntellectualIdentityProps) {
   const { profile: currentUserProfile } = useAuth();
   const isOwnProfile = !profile || (currentUserProfile?.id === profile.id);
+  
+  // Get active profile data based on current profile type
+  const getActiveProfileData = () => {
+    if (!currentUserProfile) return {};
+    
+    const activeType = currentUserProfile.active_profile_type || 'consumer';
+    if (activeType === 'consumer') {
+      return currentUserProfile.consumer_profile || {};
+    } else {
+      return currentUserProfile.creator_profile || {};
+    }
+  };
+
+  const activeProfileData = getActiveProfileData();
 
   // Use real data if available, otherwise use mock data
-  const readingStats = stats || {
-    articles_read: 42,
-    books_read: 15,
-    audiobooks_listened: 8,
-    total_content_viewed: 128,
+  const readingStats = {
+    articles_read: stats?.articles_read || 0,
+    books_read: stats?.books_read || 0,
+    audiobooks_listened: stats?.audiobooks_listened || 0,
+    total_content_viewed: stats?.total_content_viewed || 0,
   };
 
   // Get the first item from reading history if available
   const recentViews = readingHistory?.recent_views || [];
-  const currentRead = recentViews.length > 0 ? recentViews[0] : {
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    progress: 50,
-    type: 'book',
-  };
+  const currentRead = recentViews.length > 0 ? recentViews[0] : null;
 
-  const readingPreferences = profile?.reading_preferences || ['Science Fiction', 'Psychology', 'Business'];
+  const readingPreferences = activeProfileData.reading_preferences || profile?.reading_preferences || [];
   const favoriteCategories = stats?.favorite_categories || [];
 
   return (
@@ -53,7 +62,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Book className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.books_read || 0}</p>
+              <p className="text-2xl font-bold">{readingStats.books_read}</p>
               <p className="text-sm text-muted-foreground">Books Completed</p>
             </div>
           </div>
@@ -64,7 +73,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <Headphones className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.audiobooks_listened || 0}</p>
+              <p className="text-2xl font-bold">{readingStats.audiobooks_listened}</p>
               <p className="text-sm text-muted-foreground">Audiobooks Listened</p>
             </div>
           </div>
@@ -75,7 +84,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{readingStats.articles_read || 0}</p>
+              <p className="text-2xl font-bold">{readingStats.articles_read}</p>
               <p className="text-sm text-muted-foreground">Articles Read</p>
             </div>
           </div>
@@ -102,7 +111,7 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
             <div>
               <h4 className="font-medium">{currentRead.title}</h4>
               <p className="text-sm text-muted-foreground">
-                {currentRead.creator?.name || currentRead.author || 'Unknown Author'}
+                {currentRead.author || 'Unknown Author'}
               </p>
             </div>
           </div>
@@ -134,7 +143,14 @@ export function IntellectualIdentity({ profile, stats, readingHistory }: Intelle
                   </span>
                 ))
               ) : (
-                <span className="text-sm text-muted-foreground">No preferences set</span>
+                <div className="text-sm text-muted-foreground">
+                  <span>No preferences set. </span>
+                  {isOwnProfile && (
+                    <Link to="/settings/account" className="text-primary hover:underline">
+                      Add preferences
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           </div>

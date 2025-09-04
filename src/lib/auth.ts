@@ -6,6 +6,7 @@ import type { Profile, UserRole } from './types';
 interface AuthState {
   user: User | null;
   profile: Profile | null;
+  activeProfileType: 'consumer' | 'creator';
   loading: boolean;
   signUp: (email: string, password: string, username: string, role: UserRole) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -13,6 +14,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
   setProfile: (profile: Profile | null) => void;
+  switchProfile: (type: 'consumer' | 'creator') => Promise<void>;
+  enableCreatorMode: () => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   isAuthenticated: () => boolean;
   hasRole: (roles: UserRole[]) => boolean;
@@ -22,6 +25,7 @@ interface AuthState {
 const useAuth = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
+  activeProfileType: 'consumer',
   loading: true,
 
   refreshSession: async () => {
@@ -41,6 +45,7 @@ const useAuth = create<AuthState>((set, get) => ({
         if (profileError) throw profileError;
         if (profile) {
           set({ profile });
+          set({ activeProfileType: profile.active_profile_type || 'consumer' });
         }
       } else {
         set({ user: null, profile: null });
@@ -204,6 +209,7 @@ const useAuth = create<AuthState>((set, get) => ({
 
       localStorage.setItem('sb-session', JSON.stringify(session));
       localStorage.setItem('userProfile', JSON.stringify(profile));
+      set({ activeProfileType: profile.active_profile_type || 'consumer' });
 
       set({ profile, loading: false });
     } catch (error) {
@@ -320,6 +326,7 @@ const useAuth = create<AuthState>((set, get) => ({
       if (profile) {
         localStorage.setItem('userProfile', JSON.stringify(profile));
         set({ profile, loading: false });
+        set({ activeProfileType: profile.active_profile_type || 'consumer' });
       } else {
         set({ loading: false });
       }
@@ -332,8 +339,62 @@ const useAuth = create<AuthState>((set, get) => ({
   setProfile: (profile) => {
     if (profile) {
       localStorage.setItem('userProfile', JSON.stringify(profile));
+      set({ activeProfileType: profile.active_profile_type || 'consumer' });
     }
     set({ profile, loading: false });
+  },
+
+  switchProfile: async (type: 'consumer' | 'creator') => {
+    const { user, profile } = get();
+    if (!user || !profile) throw new Error('User not authenticated');
+
+    // Check if user can switch to creator
+    if (type === 'creator' && !profile.can_create_content) {
+      throw new Error('You need to enable creator mode first');
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('switch_profile_type', {
+        p_user_id: user.id,
+        p_new_type: type
+      });
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedProfile = { ...profile, active_profile_type: type };
+      set({ profile: updatedProfile, activeProfileType: type });
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    } catch (error) {
+      console.error('Error switching profile:', error);
+      throw error;
+    }
+  },
+
+  enableCreatorMode: async () => {
+    const { user, profile } = get();
+    if (!user || !profile) throw new Error('User not authenticated');
+
+    try {
+      const { error } = await supabase.rpc('enable_creator_mode', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedProfile = { 
+        ...profile, 
+        can_create_content: true, 
+        role: 'creator',
+        active_profile_type: 'creator'
+      };
+      set({ profile: updatedProfile, activeProfileType: 'creator' });
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    } catch (error) {
+      console.error('Error enabling creator mode:', error);
+      throw error;
+    }
   },
 
   resendVerificationEmail: async () => {

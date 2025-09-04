@@ -18,6 +18,23 @@ export interface Profile {
   avatar_url?: string;
   bio?: string;
   role: UserRole;
+  active_profile_type?: 'consumer' | 'creator';
+  can_create_content?: boolean;
+  consumer_profile?: {
+    bio?: string;
+    avatar_url?: string;
+    cover_url?: string;
+    reading_preferences?: string[];
+    expertise?: string[];
+    social_links?: Record<string, string>;
+  };
+  creator_profile?: {
+    bio?: string;
+    avatar_url?: string;
+    cover_url?: string;
+    expertise?: string[];
+    social_links?: Record<string, string>;
+  };
   expertise?: string[];
   reading_preferences?: string[];
   cover_url?: string;
