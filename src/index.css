@@ -102,6 +102,39 @@
   color: white !important;
 }
 
+/* Fix bottom navigation hover styles */
+.hover\:bg-primary:hover *,
+.hover\:bg-primary\/10:hover *,
+.hover\:bg-primary\/20:hover * {
+  color: white !important;
+}
+
+/* Ensure all child elements get white color on primary hover */
+.hover\:bg-primary:hover .text-muted-foreground,
+.hover\:bg-primary:hover .text-foreground,
+.hover\:bg-primary:hover span,
+.hover\:bg-primary:hover div {
+  color: white !important;
+}
+
+/* Fix sidebar and navigation hover states */
+.hover\:text-foreground:hover {
+  color: white !important;
+}
+
+/* Ensure consistent hover behavior for all interactive elements */
+button:hover.hover\:bg-primary,
+a:hover.hover\:bg-primary,
+.hover\:bg-primary:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: white !important;
+}
+
+button:hover.hover\:bg-primary *,
+a:hover.hover\:bg-primary *,
+.hover\:bg-primary:hover * {
+  color: white !important;
+}
 /* Ensure dropdown items have proper hover states */
 .group:hover .group-hover\:opacity-100 {
   opacity: 1 !important;
@@ -115,85 +148,6 @@
   transform: scale(1) !important;
 }
 
-/* Enhanced global hover consistency for all primary background elements */
-.hover\:bg-primary:hover *,
-.hover\:bg-primary\/5:hover *,
-.hover\:bg-primary\/10:hover *,
-.hover\:bg-primary\/20:hover *,
-.bg-primary:hover *,
-[class*="hover:bg-primary"]:hover *,
-[class*="hover:bg-[#1B4AB1]"]:hover *,
-.hover\:bg-\[#1B4AB1\]:hover *,
-button:hover[class*="bg-primary"] *,
-button[class*="hover:bg-primary"]:hover *,
-a[class*="hover:bg-primary"]:hover *,
-div[class*="hover:bg-primary"]:hover * {
-  color: white !important;
-}
-
-/* Specific fixes for navigation and interactive elements */
-.hover\:bg-primary:hover .text-muted-foreground,
-.hover\:bg-primary:hover .text-foreground,
-.hover\:bg-primary:hover .text-gray-400,
-.hover\:bg-primary:hover .text-gray-500,
-.hover\:bg-primary:hover .text-gray-600,
-button:hover[class*="bg-primary"] .text-muted-foreground,
-button[class*="hover:bg-primary"]:hover .text-muted-foreground,
-button[class*="hover:bg-primary"]:hover .text-foreground,
-a[class*="hover:bg-primary"]:hover .text-muted-foreground,
-a[class*="hover:bg-primary"]:hover .text-foreground {
-  color: white !important;
-}
-
-/* Fix for sidebar and navigation items */
-nav button:hover[class*="bg-primary"] span,
-nav button[class*="hover:bg-primary"]:hover span,
-nav a[class*="hover:bg-primary"]:hover span,
-.sidebar-item:hover span,
-.nav-item:hover span {
-  color: white !important;
-}
-
-/* Ensure consistent border radius across the application */
-button, .btn, [role="button"] {
-  border-radius: 0.75rem !important; /* 12px - consistent with --radius */
-}
-
-input, select, textarea {
-  border-radius: 0.75rem !important;
-}
-
-.card, .bg-card {
-  border-radius: 0.75rem !important;
-}
-
-/* Fix for mobile bottom navigation */
-.fixed.bottom-0 button:hover {
-  background-color: hsl(var(--primary)) !important;
-  color: white !important;
-}
-
-.fixed.bottom-0 button:hover svg {
-  color: white !important;
-}
-
-.fixed.bottom-0 button:hover span {
-  color: white !important;
-}
-
-/* Dropdown and popover consistency */
-.dropdown-item:hover,
-.popover-item:hover,
-[data-dropdown] button:hover {
-  background-color: hsl(var(--primary)) !important;
-  color: white !important;
-}
-
-.dropdown-item:hover *,
-.popover-item:hover *,
-[data-dropdown] button:hover * {
-  color: white !important;
-}
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
