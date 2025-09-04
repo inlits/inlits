@@ -12,11 +12,10 @@ import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/lib/auth";
 import { SearchBox } from "@/components/search/search-box";
 import { NotificationsDropdown } from '@/components/notifications/notifications-dropdown';
-import { ProfileSwitcher } from '@/components/profile/profile-switcher';
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
-  const { user, profile, signOut, activeProfileType } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const navigate = useNavigate();
   const isMobile = window.innerWidth < 768;
@@ -32,7 +31,7 @@ export function Navbar() {
 
   const handleProfileClick = () => {
     setShowUserDropdown(false);
-    if (activeProfileType === 'creator') {
+    if (profile?.role === 'creator') {
       navigate(`/creator/${profile.username}`);
     } else {
       navigate(`/@${profile?.username}`);
@@ -41,7 +40,7 @@ export function Navbar() {
 
   const handleSettingsClick = () => {
     setShowUserDropdown(false);
-    if (activeProfileType === 'creator') {
+    if (profile?.role === 'creator') {
       navigate(`/dashboard/${profile.username}/settings`);
     } else {
       navigate('/settings');
@@ -113,9 +112,9 @@ export function Navbar() {
                     <p className="px-2 text-sm font-medium">
                       {profile?.username}
                     </p>
-                    <div className="px-2">
-                      <ProfileSwitcher />
-                    </div>
+                    <p className="px-2 text-xs capitalize text-muted-foreground">
+                      {profile?.role}
+                    </p>
                   </div>
                   <button
                     onClick={handleProfileClick}
@@ -123,7 +122,7 @@ export function Navbar() {
                   >
                     Your Profile
                   </button>
-                  {activeProfileType === "creator" ? (
+                  {profile?.role === "creator" ? (
                     <Link
                       to={`/dashboard/${profile.username}`}
                       onClick={() => setShowUserDropdown(false)}
@@ -131,22 +130,6 @@ export function Navbar() {
                     >
                       Creator Dashboard
                     </Link>
-                  ) : profile?.can_create_content ? (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const { switchProfile } = get();
-                          await switchProfile('creator');
-                          setShowUserDropdown(false);
-                          navigate(`/dashboard/${profile.username}`);
-                        } catch (error) {
-                          console.error('Error switching to creator:', error);
-                        }
-                      }}
-                      className="block w-full text-left px-2 py-1.5 text-sm rounded-md hover:bg-primary/5 text-primary"
-                    >
-                      Switch to Creator
-                    </button>
                   ) : (
                     <Link
                       to="/become-creator"

@@ -7,24 +7,10 @@ import { ImageUpload } from '@/components/upload/image-upload';
 import { AlertCircle } from 'lucide-react';
 
 export function AccountSettingsPage() {
-  const { user, profile, setProfile, activeProfileType } = useAuth();
+  const { user, profile, setProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Get active profile data
-  const getActiveProfileData = () => {
-    if (!profile) return {};
-    
-    if (activeProfileType === 'consumer') {
-      return profile.consumer_profile || {};
-    } else {
-      return profile.creator_profile || {};
-    }
-  };
-
-  const activeProfileData = getActiveProfileData();
-  
   const [formData, setFormData] = useState({
     name: '',
     bio: '',
@@ -36,28 +22,21 @@ export function AccountSettingsPage() {
     if (profile) {
       setFormData({
         name: profile.name || '',
-        bio: activeProfileData.bio || profile.bio || '',
-        expertise: activeProfileData.expertise || profile.expertise || [],
-        reading_preferences: activeProfileData.reading_preferences || profile.reading_preferences || []
+        bio: profile.bio || '',
+        expertise: profile.expertise || [],
+        reading_preferences: profile.reading_preferences || []
       });
     }
-  }, [profile, activeProfileType]);
+  }, [profile]);
 
   const handleAvatarUpload = async (url: string) => {
     if (!user) return;
 
     try {
-      // Update the appropriate profile data
-      const profileField = activeProfileType === 'consumer' ? 'consumer_profile' : 'creator_profile';
-      const currentProfileData = getActiveProfileData();
-      
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          [profileField]: {
-            ...currentProfileData,
-            avatar_url: url
-          },
+          avatar_url: url,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -65,15 +44,10 @@ export function AccountSettingsPage() {
       if (updateError) throw updateError;
 
       // Update local profile state
-      if (profile) {
-        const updatedProfile = { ...profile };
-        if (activeProfileType === 'consumer') {
-          updatedProfile.consumer_profile = { ...currentProfileData, avatar_url: url };
-        } else {
-          updatedProfile.creator_profile = { ...currentProfileData, avatar_url: url };
-        }
-        setProfile(updatedProfile);
-      }
+      setProfile(profile ? {
+        ...profile,
+        avatar_url: url
+      } : null);
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -87,16 +61,10 @@ export function AccountSettingsPage() {
     if (!user) return;
 
     try {
-      const profileField = activeProfileType === 'consumer' ? 'consumer_profile' : 'creator_profile';
-      const currentProfileData = getActiveProfileData();
-      
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          [profileField]: {
-            ...currentProfileData,
-            cover_url: url
-          },
+          cover_url: url,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -104,15 +72,10 @@ export function AccountSettingsPage() {
       if (updateError) throw updateError;
 
       // Update local profile state
-      if (profile) {
-        const updatedProfile = { ...profile };
-        if (activeProfileType === 'consumer') {
-          updatedProfile.consumer_profile = { ...currentProfileData, cover_url: url };
-        } else {
-          updatedProfile.creator_profile = { ...currentProfileData, cover_url: url };
-        }
-        setProfile(updatedProfile);
-      }
+      setProfile(profile ? {
+        ...profile,
+        cover_url: url
+      } : null);
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -132,19 +95,13 @@ export function AccountSettingsPage() {
 
     try {
       // Update profile in database
-      const profileField = activeProfileType === 'consumer' ? 'consumer_profile' : 'creator_profile';
-      const currentProfileData = getActiveProfileData();
-      
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           name: formData.name,
-          [profileField]: {
-            ...currentProfileData,
-            bio: formData.bio,
-            expertise: formData.expertise,
-            reading_preferences: formData.reading_preferences
-          },
+          bio: formData.bio,
+          expertise: formData.expertise,
+          reading_preferences: formData.reading_preferences,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -152,27 +109,10 @@ export function AccountSettingsPage() {
       if (updateError) throw updateError;
 
       // Update local profile state
-      if (profile) {
-        const updatedProfile = { 
-          ...profile, 
-          name: formData.name
-        };
-        if (activeProfileType === 'consumer') {
-          updatedProfile.consumer_profile = { 
-            ...currentProfileData, 
-            bio: formData.bio,
-            expertise: formData.expertise,
-            reading_preferences: formData.reading_preferences
-          };
-        } else {
-          updatedProfile.creator_profile = { 
-            ...currentProfileData, 
-            bio: formData.bio,
-            expertise: formData.expertise
-          };
-        }
-        setProfile(updatedProfile);
-      }
+      setProfile(profile ? {
+        ...profile,
+        ...formData
+      } : null);
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -205,11 +145,9 @@ export function AccountSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold">
-          {activeProfileType === 'consumer' ? 'Consumer' : 'Creator'} Profile Settings
-        </h2>
+        <h2 className="text-lg font-semibold">Account Settings</h2>
         <p className="text-sm text-muted-foreground">
-          Update your {activeProfileType} profile information
+          Update your account information
         </p>
       </div>
 
@@ -236,7 +174,7 @@ export function AccountSettingsPage() {
               bucket="profile-covers"
               onUploadComplete={handleCoverUpload}
               aspectRatio="video"
-              defaultImage={activeProfileData.cover_url || profile?.cover_url}
+              defaultImage={profile?.cover_url}
               className="w-full max-w-3xl"
               maxSize={5 * 1024 * 1024} // 5MB
             />
@@ -252,7 +190,7 @@ export function AccountSettingsPage() {
               bucket="profile-avatars"
               onUploadComplete={handleAvatarUpload}
               aspectRatio="square"
-              defaultImage={activeProfileData.avatar_url || profile?.avatar_url}
+              defaultImage={profile?.avatar_url}
               className="w-32 h-32"
               maxSize={2 * 1024 * 1024} // 2MB
             />
@@ -332,26 +270,24 @@ export function AccountSettingsPage() {
           </div>
         </div>
 
-        {/* Reading Preferences - Only show for consumer profile */}
-        {activeProfileType === 'consumer' && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Reading Preferences</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="reading_preferences">Preferred topics and genres</Label>
-              <Input
-                id="reading_preferences"
-                name="reading_preferences"
-                value={formData.reading_preferences.join(', ')}
-                onChange={handleInputChange}
-                placeholder="e.g., Science Fiction, Business, Psychology"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate preferences with commas
-              </p>
-            </div>
+        {/* Reading Preferences */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Reading Preferences</h3>
+          
+          <div className="space-y-2">
+            <Label htmlFor="reading_preferences">Preferred topics and genres</Label>
+            <Input
+              id="reading_preferences"
+              name="reading_preferences"
+              value={formData.reading_preferences.join(', ')}
+              onChange={handleInputChange}
+              placeholder="e.g., Science Fiction, Business, Psychology"
+            />
+            <p className="text-xs text-muted-foreground">
+              Separate preferences with commas
+            </p>
           </div>
-        )}
+        </div>
 
         <div className="flex justify-end">
           <button

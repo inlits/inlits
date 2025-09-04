@@ -90,76 +90,16 @@
   }
 
 /* Global hover consistency - ensure text and icons are white when hovering over primary colored elements */
-/* Global hover consistency - ensure text and icons are white when hovering over primary colored elements */
 .hover\:bg-primary:hover,
-.hover\:bg-primary:hover *,
 .hover\:bg-primary\/10:hover,
-.hover\:bg-primary\/20:hover,
-.bg-primary:hover,
-.bg-primary:hover *,
-[class*="hover:bg-primary"]:hover,
-[class*="hover:bg-primary"]:hover *,
-[class*="hover:bg-[#1B4AB1]"]:hover,
-[class*="hover:bg-[#1B4AB1]"]:hover *,
-button:hover[class*="bg-primary"],
-button:hover[class*="bg-primary"] *,
-.group:hover [class*="group-hover:bg-primary"],
-.group:hover [class*="group-hover:bg-primary"] * {
+.hover\:bg-primary\/20:hover {
   color: white !important;
 }
 
-/* Specific fixes for navigation and interactive elements */
 .hover\:bg-primary:hover svg,
-.hover\:bg-primary:hover .lucide,
-.bg-primary:hover svg,
-.bg-primary:hover .lucide,
-[class*="hover:bg-primary"]:hover svg,
-[class*="hover:bg-primary"]:hover .lucide,
-[class*="hover:bg-[#1B4AB1]"]:hover svg,
-[class*="hover:bg-[#1B4AB1]"]:hover .lucide,
-button:hover[class*="bg-primary"] svg,
-button:hover[class*="bg-primary"] .lucide,
-.group:hover [class*="group-hover:bg-primary"] svg,
-.group:hover [class*="group-hover:bg-primary"] .lucide {
+.hover\:bg-primary\/10:hover svg,
+.hover\:bg-primary\/20:hover svg {
   color: white !important;
-  stroke: white !important;
-  fill: white !important;
-}
-
-/* Mobile bottom navigation specific fixes */
-nav[class*="bottom-"] button:hover,
-nav[class*="bottom-"] button:hover *,
-nav[class*="bottom-"] button:hover svg,
-nav[class*="bottom-"] a:hover,
-nav[class*="bottom-"] a:hover *,
-nav[class*="bottom-"] a:hover svg,
-.mobile-nav-item:hover,
-.mobile-nav-item:hover *,
-.mobile-nav-item:hover svg {
-  color: white !important;
-  stroke: white !important;
-}
-
-/* Sidebar navigation fixes */
-aside nav a:hover[class*="bg-primary"],
-aside nav a:hover[class*="bg-primary"] *,
-aside nav a:hover[class*="bg-primary"] svg,
-aside nav button:hover[class*="bg-primary"],
-aside nav button:hover[class*="bg-primary"] *,
-aside nav button:hover[class*="bg-primary"] svg {
-  color: white !important;
-  stroke: white !important;
-}
-
-/* Dropdown and popover fixes */
-[role="menu"] button:hover[class*="bg-primary"],
-[role="menu"] button:hover[class*="bg-primary"] *,
-[role="menu"] button:hover[class*="bg-primary"] svg,
-.dropdown-item:hover[class*="bg-primary"],
-.dropdown-item:hover[class*="bg-primary"] *,
-.dropdown-item:hover[class*="bg-primary"] svg {
-  color: white !important;
-  stroke: white !important;
 }
 
 /* Ensure dropdown items have proper hover states */
@@ -173,17 +113,6 @@ aside nav button:hover[class*="bg-primary"] svg {
 
 .group:hover .group-hover\:scale-100 {
   transform: scale(1) !important;
-}
-
-/* Consistent border radius */
-button,
-input,
-select,
-textarea,
-.card,
-.border,
-[class*="rounded"] {
-  border-radius: 0.75rem !important;
 }
 
   .scrollbar-hide {
