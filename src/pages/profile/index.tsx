@@ -1,107 +1,189 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Settings, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Users, BookOpen, MessageSquare, Star, Calendar, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import { ProfileHeader } from '@/components/profile/profile-header';
+import { IntellectualIdentity } from '@/components/profile/intellectual-identity';
+import { ProfileCircles } from '@/components/profile/profile-circles';
+import { ProfileContributions } from '@/components/profile/profile-contributions';
+import { ProfileAchievements } from '@/components/profile/profile-achievements';
 
-interface ProfileHeaderProps {
-  profile?: any;
-  isOwnProfile?: boolean;
-  stats?: any;
+interface UserStats {
+  totalContentViewed: number;
+  booksRead: number;
+  audiobooksListened: number;
+  articlesRead: number;
+  podcastsListened: number;
+  totalComments: number;
+  totalRatings: number;
+  averageRating: number;
+  bookClubsJoined: number;
+  favoriteCategories: string[];
 }
 
-export function ProfileHeader({ profile, isOwnProfile = true, stats }: ProfileHeaderProps) {
-  const { profile: authProfile } = useAuth();
-  const userProfile = profile || authProfile;
-  
-  // Use real data if available, otherwise use mock data
-  const profileData = {
-    avatar_url: userProfile?.avatar_url || `https://source.unsplash.com/random/200x200?portrait&sig=${Date.now()}`,
-    name: userProfile?.name || userProfile?.username || 'John Doe',
-    tagline: userProfile?.bio || 'Exploring worlds through words',
-    location: userProfile?.location || 'San Francisco, CA',
-    joinedDate: userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'March 2025',
-    topBadges: [
-      { id: '1', name: 'Bookworm', icon: '📚' },
-      { id: '2', name: 'Audiophile', icon: '🎧' },
-      { id: '3', name: 'Literary Critic', icon: '✍️' },
-    ]
+export default function ProfilePage() {
+  const { user, profile } = useAuth();
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [bookClubs, setBookClubs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    }
+  }, [user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch user statistics
+      const [
+        readingStatusResult,
+        commentsResult,
+        ratingsResult,
+        bookClubsResult,
+        contentViewsResult
+      ] = await Promise.all([
+        supabase
+          .from('reading_status')
+          .select('status, content_type')
+          .eq('user_id', user.id),
+        supabase
+          .from('comments')
+          .select('id, content, created_at, content_type')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('ratings')
+          .select('rating, content_type')
+          .eq('user_id', user.id),
+        supabase
+          .from('book_club_members')
+          .select(`
+            book_clubs (
+              id,
+              name,
+              description,
+              current_chapter,
+              completion_percentage
+            )
+          `)
+          .eq('user_id', user.id),
+        supabase
+          .from('content_views')
+          .select('content_type')
+          .eq('viewer_id', user.id)
+      ]);
+
+      // Process statistics
+      const readingData = readingStatusResult.data || [];
+      const commentsData = commentsResult.data || [];
+      const ratingsData = ratingsResult.data || [];
+      const bookClubsData = bookClubsResult.data || [];
+      const viewsData = contentViewsResult.data || [];
+
+      const stats: UserStats = {
+        totalContentViewed: viewsData.length,
+        booksRead: readingData.filter(r => r.content_type === 'book' && r.status === 'completed').length,
+        audiobooksListened: readingData.filter(r => r.content_type === 'audiobook' && r.status === 'completed').length,
+        articlesRead: readingData.filter(r => r.content_type === 'article' && r.status === 'completed').length,
+        podcastsListened: readingData.filter(r => r.content_type === 'podcast' && r.status === 'completed').length,
+        totalComments: commentsData.length,
+        totalRatings: ratingsData.length,
+        averageRating: ratingsData.length > 0 ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length : 0,
+        bookClubsJoined: bookClubsData.length,
+        favoriteCategories: []
+      };
+
+      setUserStats(stats);
+      setRecentActivity(commentsData);
+      setBookClubs(bookClubsData.map(item => item.book_clubs).filter(Boolean));
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="relative">
-      {/* Cover Image */}
-      <div className="h-48 rounded-xl overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
-        <img
-          src={userProfile?.cover_url || "https://source.unsplash.com/random/1600x400?library"}
-          alt="Cover"
-          className="w-full h-full object-cover opacity-50"
-        />
+  if (!user || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Please sign in</h2>
+          <p className="text-muted-foreground">You need to be signed in to view your profile.</p>
+        </div>
       </div>
+    );
+  }
 
-      {/* Profile Content */}
-      <div className="relative px-6 pb-6 -mt-24">
-        <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start">
-          {/* Avatar */}
-          <div className="shrink-0">
-            <div className="w-32 h-32 rounded-full border-4 border-background overflow-hidden bg-muted">
-              <img
-                src={profileData.avatar_url}
-                alt={profileData.name}
-                className="w-full h-full object-cover"
-              />
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <div className="animate-pulse">
+          <div className="h-48 bg-muted rounded-xl mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-8 bg-muted rounded w-1/3"></div>
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-32 bg-muted rounded-lg"></div>
+              ))}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-bold">{profileData.name}</h1>
-                <p className="text-muted-foreground">{profileData.tagline}</p>
-              </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        {/* Profile Header */}
+        <ProfileHeader profile={profile} stats={userStats} />
 
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/settings"
-                  className="inline-flex items-center justify-center rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Link>
-                <button className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Message
-                </button>
-              </div>
+        {/* Quick Stats */}
+        {userStats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-card rounded-lg p-4 text-center border">
+              <BookOpen className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-bold">{userStats.booksRead}</div>
+              <div className="text-sm text-muted-foreground">Books Read</div>
             </div>
-
-            {/* Meta Info */}
-            <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{profileData.location}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>Joined {profileData.joinedDate}</span>
-              </div>
+            <div className="bg-card rounded-lg p-4 text-center border">
+              <MessageSquare className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-bold">{userStats.totalComments}</div>
+              <div className="text-sm text-muted-foreground">Comments</div>
             </div>
-
-            {/* Badges */}
-            <div className="mt-4 flex items-center gap-3">
-              {profileData.topBadges.map(badge => (
-                <div
-                  key={badge.id}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
-                >
-                  <span>{badge.icon}</span>
-                  <span>{badge.name}</span>
-                </div>
-              ))}
-              <button className="text-sm text-primary hover:underline">
-                View all badges
-              </button>
+            <div className="bg-card rounded-lg p-4 text-center border">
+              <Star className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-bold">{userStats.averageRating.toFixed(1)}</div>
+              <div className="text-sm text-muted-foreground">Avg Rating</div>
             </div>
+            <div className="bg-card rounded-lg p-4 text-center border">
+              <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-bold">{userStats.bookClubsJoined}</div>
+              <div className="text-sm text-muted-foreground">Book Clubs</div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <IntellectualIdentity stats={userStats} />
+            <ProfileContributions recentActivity={recentActivity} />
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-8">
+            <ProfileCircles bookClubs={bookClubs} />
+            <ProfileAchievements stats={userStats} />
           </div>
         </div>
       </div>
