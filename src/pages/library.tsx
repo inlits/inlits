@@ -698,7 +698,7 @@ export function LibraryPage() {
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-background border rounded-lg shadow-xl z-[200] opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto transform scale-95 group-hover:scale-100">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-background border rounded-lg shadow-xl z-[200] opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto transform scale-95 group-hover:scale-100 min-w-max">
                           <div className="p-2 space-y-1">
                             {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
                               <button
