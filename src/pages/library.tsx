@@ -502,14 +502,9 @@ export function LibraryPage() {
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="space-y-4">
-        <div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold mb-2">My Library</h1>
-          <p className="text-muted-foreground">
-            Track your learning journey across all content types
-          </p>
-        </div>
-        <div className="flex justify-start">
           <button
             onClick={() => {
               setStatusDialogConfig({
@@ -524,6 +519,9 @@ export function LibraryPage() {
             <span>Add Content</span>
           </button>
         </div>
+        <p className="text-muted-foreground">
+          Track your learning journey across all content types
+        </p>
       </div>
 
       {/* Tabs */}
@@ -692,15 +690,15 @@ export function LibraryPage() {
                     )}
 
                     {/* Status dropdown - Fixed visibility */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-[100]">
                       <div className="relative">
                         <button 
                           onClick={(e) => e.stopPropagation()}
-                          className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors shadow-sm border"
+                          className="w-8 h-8 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors shadow-lg border"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-background border rounded-lg shadow-xl z-[100] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-background border rounded-lg shadow-xl z-[200] opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto transform scale-95 group-hover:scale-100">
                           <div className="p-2 space-y-1">
                             {['want_to_consume', 'consuming', 'completed', 'paused', 'dropped'].map(status => (
                               <button
