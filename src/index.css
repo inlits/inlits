@@ -102,6 +102,39 @@
   color: white !important;
 }
 
+/* Fix bottom navigation hover styles */
+.hover\:bg-primary:hover *,
+.hover\:bg-primary\/10:hover *,
+.hover\:bg-primary\/20:hover * {
+  color: white !important;
+}
+
+/* Ensure all child elements get white color on primary hover */
+.hover\:bg-primary:hover .text-muted-foreground,
+.hover\:bg-primary:hover .text-foreground,
+.hover\:bg-primary:hover span,
+.hover\:bg-primary:hover div {
+  color: white !important;
+}
+
+/* Fix sidebar and navigation hover states */
+.hover\:text-foreground:hover {
+  color: white !important;
+}
+
+/* Ensure consistent hover behavior for all interactive elements */
+button:hover.hover\:bg-primary,
+a:hover.hover\:bg-primary,
+.hover\:bg-primary:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: white !important;
+}
+
+button:hover.hover\:bg-primary *,
+a:hover.hover\:bg-primary *,
+.hover\:bg-primary:hover * {
+  color: white !important;
+}
 /* Ensure dropdown items have proper hover states */
 .group:hover .group-hover\:opacity-100 {
   opacity: 1 !important;
