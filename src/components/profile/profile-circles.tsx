@@ -1,88 +1,32 @@
 import React from 'react';
-import { Users, Lock, Plus } from 'lucide-react';
-
-interface Circle {
-  id: string;
-  name: string;
-  members: number;
-  isPrivate: boolean;
-  thumbnail: string;
-}
+import { Users, Lock, Plus, AlertCircle } from 'lucide-react';
 
 export function ProfileCircles() {
-  // Mock data for demonstration
-  const mockCircles: Circle[] = [
-    {
-      id: '1',
-      name: 'Science Fiction Enthusiasts',
-      members: 1234,
-      isPrivate: false,
-      thumbnail: `https://source.unsplash.com/random/400x400?scifi&sig=${Date.now()}-1`,
-    },
-    {
-      id: '2',
-      name: 'Psychology & Philosophy',
-      members: 567,
-      isPrivate: true,
-      thumbnail: `https://source.unsplash.com/random/400x400?psychology&sig=${Date.now()}-2`,
-    },
-    {
-      id: '3',
-      name: 'Business Book Club',
-      members: 890,
-      isPrivate: false,
-      thumbnail: `https://source.unsplash.com/random/400x400?business&sig=${Date.now()}-3`,
-    },
-  ];
+  // Circles feature is not yet implemented
 
   return (
     <div className="bg-card border rounded-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="space-y-1">
           <h2 className="font-semibold">Circles</h2>
-          <p className="text-sm text-muted-foreground">Connect through shared interests</p>
+          <p className="text-sm text-muted-foreground">Connect with like-minded learners</p>
         </div>
-        <button className="inline-flex items-center justify-center rounded-lg border bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent">
-          <Plus className="w-4 h-4 mr-2" />
-          Join Circle
-        </button>
       </div>
 
-      <div className="space-y-4">
-        {mockCircles.map((circle) => (
-          <div
-            key={circle.id}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-lg overflow-hidden">
-              <img
-                src={circle.thumbnail}
-                alt={circle.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium truncate">{circle.name}</h3>
-                {circle.isPrivate && (
-                  <Lock className="w-3 h-3 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Users className="w-3 h-3" />
-                <span>{circle.members.toLocaleString()} members</span>
-              </div>
-            </div>
-            <button className="shrink-0 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-              {circle.isPrivate ? 'Request to Join' : 'Join'}
-            </button>
-          </div>
-        ))}
+      {/* Coming Soon Message */}
+      <div className="text-center py-8">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <Users className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="text-lg font-medium mb-2">Circles Coming Soon!</h3>
+        <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+          We're working on exciting features to help you connect with like-minded learners and form study circles.
+        </p>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Feature in development</span>
+        </div>
       </div>
-
-      <button className="w-full mt-4 text-sm text-primary hover:underline">
-        View all circles
-      </button>
     </div>
   );
 }

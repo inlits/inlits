@@ -1,21 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Settings, MessageSquare, BookOpen, Headphones, FileText, Trophy } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 interface ProfileHeaderProps {
   profile?: any;
   isOwnProfile?: boolean;
-  stats?: any;
 }
 
-export function ProfileHeader({ profile, isOwnProfile = true, stats }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, isOwnProfile = true }: ProfileHeaderProps) {
   const { profile: authProfile } = useAuth();
   const userProfile = profile || authProfile;
-  
-  const joinedDate = userProfile?.created_at 
-    ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : 'Recently';
 
   return (
     <div className="relative overflow-hidden">
@@ -53,20 +48,6 @@ export function ProfileHeader({ profile, isOwnProfile = true, stats }: ProfileHe
                 <p className="text-sm md:text-base text-muted-foreground">
                   {userProfile?.bio || 'Learning and growing every day'}
                 </p>
-                
-                {/* Meta Info */}
-                <div className="mt-2 md:mt-4 flex flex-col md:flex-row items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Joined {joinedDate}</span>
-                  </div>
-                  {userProfile?.reading_preferences && userProfile.reading_preferences.length > 0 && (
-                    <>
-                      <span className="hidden md:inline">•</span>
-                      <span>{userProfile.reading_preferences[0]}</span>
-                    </>
-                  )}
-                </div>
               </div>
 
               {/* Action Buttons */}
@@ -83,50 +64,6 @@ export function ProfileHeader({ profile, isOwnProfile = true, stats }: ProfileHe
                 </div>
               )}
             </div>
-            
-            {/* Stats - Mobile Horizontal Scroll, Desktop Grid */}
-            {stats && (
-              <div className="mt-4 md:mt-6">
-                <div className="flex md:grid md:grid-cols-4 gap-4 md:gap-6 overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0">
-                  <div className="flex-shrink-0 md:flex-shrink text-center">
-                    <div className="flex items-center justify-center gap-2 md:flex-col md:gap-1">
-                      <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                      <div>
-                        <p className="text-lg md:text-xl font-bold">{stats.books_read || 0}</p>
-                        <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">Books Read</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 md:flex-shrink text-center">
-                    <div className="flex items-center justify-center gap-2 md:flex-col md:gap-1">
-                      <Headphones className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                      <div>
-                        <p className="text-lg md:text-xl font-bold">{stats.audiobooks_listened || 0}</p>
-                        <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">Audiobooks</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 md:flex-shrink text-center">
-                    <div className="flex items-center justify-center gap-2 md:flex-col md:gap-1">
-                      <FileText className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                      <div>
-                        <p className="text-lg md:text-xl font-bold">{stats.articles_read || 0}</p>
-                        <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">Articles</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 md:flex-shrink text-center">
-                    <div className="flex items-center justify-center gap-2 md:flex-col md:gap-1">
-                      <Trophy className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                      <div>
-                        <p className="text-lg md:text-xl font-bold">{stats.completed_content || 0}</p>
-                        <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">Completed</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
