@@ -89,6 +89,32 @@
     background-color: rgba(255, 255, 255, 0.2);
   }
 
+/* Global hover consistency - ensure text and icons are white when hovering over primary colored elements */
+.hover\:bg-primary:hover,
+.hover\:bg-primary\/10:hover,
+.hover\:bg-primary\/20:hover {
+  color: white !important;
+}
+
+.hover\:bg-primary:hover svg,
+.hover\:bg-primary\/10:hover svg,
+.hover\:bg-primary\/20:hover svg {
+  color: white !important;
+}
+
+/* Ensure dropdown items have proper hover states */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1 !important;
+}
+
+.group:hover .group-hover\:pointer-events-auto {
+  pointer-events: auto !important;
+}
+
+.group:hover .group-hover\:scale-100 {
+  transform: scale(1) !important;
+}
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
