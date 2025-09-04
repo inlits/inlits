@@ -386,28 +386,18 @@ export function Sidebar({ onCollapse, defaultCollapsed = false }: SidebarProps) 
       {/* Collapse Toggle Button - Only show on desktop */}
       {!isMobile && (
         <button
-                to={`/dashboard/${profile?.username}`}
+          onClick={() => handleCollapse(!collapsed)}
           className="fixed z-50 h-12 flex items-center justify-center bg-background hover:bg-primary/5 border rounded-r-full transition-all duration-300"
           style={{ 
             left: collapsed ? '64px' : '256px',
             top: '50%',
-              profile?.can_create_content ? (
-                <SidebarItem
-                  icon={CreditCard}
-                  label="Creator Dashboard"
-                  to={`/dashboard/${profile?.username}`}
-                  collapsed={collapsed}
-                  highlight
-                />
-              ) : (
-                <SidebarItem
-                  icon={Rocket}
-                  label="Become a Creator"
-                  to="/become-creator"
-                  collapsed={collapsed}
-                  highlight
-                />
-              )
+            transform: 'translateY(-50%)',
+            width: '24px'
+          }}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
             <ChevronLeft className="w-4 h-4" />
           )}
         </button>
